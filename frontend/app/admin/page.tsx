@@ -1,7 +1,5 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -54,22 +52,16 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
@@ -163,7 +155,5 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }

@@ -17,6 +17,16 @@ export default function Navbar() {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
     }
+
+    // Listen for localStorage changes from other tabs/profile page
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user' && e.newValue) {
+        setUser(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleLogout = () => {
@@ -27,8 +37,21 @@ export default function Navbar() {
     router.push('/');
   };
 
+  const avatarUrl = user?.avatar
+    ? (() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        if (user.avatar.startsWith('http')) {
+          return user.avatar;
+        } else if (user.avatar.startsWith('/')) {
+          return `${apiUrl}${user.avatar}`;
+        } else {
+          return `${apiUrl}/${user.avatar}`;
+        }
+      })()
+    : null;
+
   return (
-    <nav className="sticky top-0 z-50 bg-white shadow-lg">
+    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -58,35 +81,51 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gradient-primary text-white hover:shadow-lg transition"
+                  className="flex items-center space-x-3 px-3 py-2 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow transition"
                 >
-                  <span>{user?.name || 'User'}</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-primary text-white flex items-center justify-center text-sm font-semibold">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }} />
+                    ) : null}
+                    {!avatarUrl && (
+                      (user?.name || 'U').charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <svg
+                    className={`w-4 h-4 text-gray-600 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl">
-                    <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
-                      Dashboard
+                <div
+                  className={`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 origin-top-right transform transition-all duration-150 ease-out ${
+                    isDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                  }`}
+                >
+                  <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+                    Dashboard
+                  </Link>
+                  {user?.role === 'admin' && (
+                    <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100">
+                      Admin Panel
                     </Link>
-                    {user?.role === 'admin' && (
-                      <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100">
-                        Admin Panel
-                      </Link>
-                    )}
-                    <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100">
-                      Profile
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
+                  )}
+                  <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100">
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-x-2">

@@ -1,7 +1,5 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -64,40 +62,30 @@ export default function CourseDetail() {
 
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="mt-4 text-gray-600">Loading course...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading course...</p>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
   if (!course) {
     return (
-      <>
-        <Navbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">Course not found</h2>
-            <Link href="/courses" className="text-primary hover:underline">
-              Back to courses
-            </Link>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Course not found</h2>
+          <Link href="/courses" className="text-primary hover:underline">
+            Back to courses
+          </Link>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
         {/* Course Header */}
         <div className="bg-white">
           <div className="max-w-7xl mx-auto px-4 py-12">
@@ -248,7 +236,5 @@ export default function CourseDetail() {
           </div>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }

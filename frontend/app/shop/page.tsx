@@ -1,13 +1,9 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 
 export default function Shop() {
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
         <section className="max-w-7xl mx-auto px-4 py-20">
           <h1 className="text-4xl font-bold mb-4">Shop</h1>
           <p className="text-gray-600 text-lg mb-12">
@@ -42,7 +38,5 @@ export default function Shop() {
           </div>
         </section>
       </main>
-      <Footer />
-    </>
   );
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const mongoose = require('mongoose');
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
@@ -10,6 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/9tangle';

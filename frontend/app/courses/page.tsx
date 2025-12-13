@@ -1,7 +1,5 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -46,9 +44,7 @@ export default function Courses() {
   const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
         {/* Header */}
         <section className="bg-gradient-primary text-white py-12 px-4">
           <div className="max-w-7xl mx-auto">
@@ -168,7 +164,5 @@ export default function Courses() {
           </div>
         </div>
       </main>
-      <Footer />
-    </>
   );
 }
