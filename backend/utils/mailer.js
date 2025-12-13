@@ -11,7 +11,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendVerificationEmail = async (email, token) => {
-  const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const redirectUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/login` : '';
+  const redirectQuery = redirectUrl ? `&redirect=${encodeURIComponent(redirectUrl)}` : '';
+  const verificationLink = `${backendUrl}/api/auth/verify-email?token=${token}${redirectQuery}`;
 
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'noreply@9tangle.com',

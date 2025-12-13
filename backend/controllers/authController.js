@@ -1,6 +1,15 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
+
+const findUserByVerificationToken = async (token) => {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  return User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+};
 
 // User Registration
 exports.register = async (req, res) => {
@@ -50,7 +59,10 @@ exports.register = async (req, res) => {
       await sendVerificationEmail(email, verificationToken);
     } catch (emailError) {
       console.error('Email sending failed:', emailError);
-      // Continue even if email fails
+      return res.status(500).json({
+        success: false,
+        message: 'Registration failed: could not send verification email',
+      });
     }
 
     res.status(201).json({
@@ -70,7 +82,7 @@ exports.register = async (req, res) => {
 // Email Verification
 exports.verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body;
+    const token = req.body.token || req.query.token;
 
     if (!token) {
       return res.status(400).json({
@@ -79,15 +91,12 @@ exports.verifyEmail = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
-      emailVerificationToken: require('crypto')
-        .createHash('sha256')
-        .update(token)
-        .digest('hex'),
-      emailVerificationExpires: { $gt: Date.now() },
-    });
+    const user = await findUserByVerificationToken(token);
 
     if (!user) {
+      if (req.query.redirect) {
+        return res.redirect(`${req.query.redirect}?verified=0`);
+      }
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired verification token',
@@ -98,6 +107,10 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
+
+    if (req.query.redirect) {
+      return res.redirect(`${req.query.redirect}?verified=1`);
+    }
 
     res.status(200).json({
       success: true,
