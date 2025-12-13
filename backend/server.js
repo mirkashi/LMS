@@ -20,22 +20,28 @@ mongoose.connect(mongoUri, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// PostgreSQL Connection
-const sequelize = new Sequelize(
-  process.env.DB_NAME || '9tangle',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || 'password',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    dialect: 'postgres',
-    logging: false,
-  }
-);
+// PostgreSQL Connection (optional)
+let sequelize;
+const pgEnabled = String(process.env.DB_ENABLED || 'true') !== 'false';
+if (pgEnabled) {
+  sequelize = new Sequelize(
+    process.env.DB_NAME || '9tangle',
+    process.env.DB_USER || 'postgres',
+    process.env.DB_PASSWORD || 'password',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      dialect: 'postgres',
+      logging: false,
+    }
+  );
 
-sequelize.authenticate()
-  .then(() => console.log('✅ PostgreSQL connected'))
-  .catch(err => console.error('PostgreSQL connection error:', err));
+  sequelize.authenticate()
+    .then(() => console.log('✅ PostgreSQL connected'))
+    .catch(err => console.error('PostgreSQL connection error:', err));
+} else {
+  console.log('ℹ️ PostgreSQL disabled via DB_ENABLED=false');
+}
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

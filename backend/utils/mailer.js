@@ -1,13 +1,44 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: process.env.EMAIL_PORT || 587,
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
+let transporter;
+
+async function initTransporter() {
+  const hasCreds = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
+  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+
+  if (!hasCreds && isDev) {
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    console.log('📧 Using Ethereal test SMTP: login at https://ethereal.email');
+    return;
+  }
+
+  if (!hasCreds) {
+    throw new Error('EMAIL_USER/EMAIL_PASSWORD are not set');
+  }
+
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: Number(process.env.EMAIL_PORT || 587),
+    secure: String(process.env.EMAIL_SECURE || 'false') === 'true',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+}
+
+// initialize immediately
+initTransporter().catch(err => {
+  console.error('❌ SMTP transporter init failed:', err.message);
 });
 
 const sendVerificationEmail = async (email, token) => {
@@ -41,8 +72,9 @@ const sendVerificationEmail = async (email, token) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Verification email sent');
+    const info = await transporter.sendMail(mailOptions);
+    const preview = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
+    console.log('✅ Verification email sent', preview ? `Preview: ${preview}` : '');
   } catch (error) {
     console.error('❌ Email sending failed:', error);
     throw error;
@@ -77,8 +109,9 @@ const sendPasswordResetEmail = async (email, resetToken) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent');
+    const info = await transporter.sendMail(mailOptions);
+    const preview = nodemailer.getTestMessageUrl ? nodemailer.getTestMessageUrl(info) : null;
+    console.log('✅ Password reset email sent', preview ? `Preview: ${preview}` : '');
   } catch (error) {
     console.error('❌ Email sending failed:', error);
     throw error;

@@ -64,6 +64,12 @@ To enable email verification and password reset:
 3. Add to `.env`:
    - EMAIL_USER=your_gmail@gmail.com
    - EMAIL_PASSWORD=your_app_password
+  - BACKEND_URL=http://localhost:5000
+  - FRONTEND_URL=http://localhost:3000
+
+Development fallback:
+- If `EMAIL_USER` and `EMAIL_PASSWORD` are not set and `NODE_ENV=development`, the app uses Ethereal test SMTP automatically.
+- Check console for a “Preview URL”; open it to view the email.
 
 ## API Testing
 
@@ -120,6 +126,8 @@ Content-Type: application/json
 - Ensure PostgreSQL service is running
 - Check database exists: `\l` in psql
 - Verify credentials in .env
+- If you don't need PostgreSQL locally, set `DB_ENABLED=false` in `.env` to skip connecting.
+- If connecting, make sure `DB_USER` and `DB_PASSWORD` match your local Postgres user.
 
 ### Email Not Sending
 - Check EMAIL_USER and EMAIL_PASSWORD
