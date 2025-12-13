@@ -1,7 +1,5 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -27,11 +25,9 @@ export default function Home() {
   }, []);
 
   return (
-    <>
-      <Navbar />
-      <main>
-        {/* Hero Section */}
-        <section className="bg-gradient-primary text-white py-20 px-4">
+    <div>
+      {/* Hero Section */}
+      <section className="bg-gradient-primary text-white py-20 px-4">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
@@ -176,8 +172,4 @@ export default function Home() {
             </div>
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
-  );
-}
+    </div>
