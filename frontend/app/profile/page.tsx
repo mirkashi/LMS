@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const previewUrl = useMemo(() => {
     if (file) return URL.createObjectURL(file);
     if (profile.avatar) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//localhost:5000`;
       if (profile.avatar.startsWith('http')) {
         return `${profile.avatar}?refresh=${imageRefresh}`;
       } else if (profile.avatar.startsWith('/')) {
@@ -146,10 +146,9 @@ export default function ProfilePage() {
         const parsed = JSON.parse(userData);
         const updatedUser = { ...parsed, name: data.data.name, email: data.data.email, avatar: data.data.avatar };
         localStorage.setItem("user", JSON.stringify(updatedUser));
-        // Trigger storage event for navbar update
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'user',
-          newValue: JSON.stringify(updatedUser),
+        // Trigger custom event for navbar update
+        window.dispatchEvent(new CustomEvent('userUpdated', {
+          detail: { user: updatedUser },
         }));
       }
     } catch (err: any) {

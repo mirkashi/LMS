@@ -9,6 +9,7 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [avatarRefresh, setAvatarRefresh] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,11 +23,22 @@ export default function Navbar() {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'user' && e.newValue) {
         setUser(JSON.parse(e.newValue));
+        setAvatarRefresh(Date.now());
       }
     };
 
+    // Listen for user updates from same tab (e.g., profile update)
+    const handleUserUpdate = (e: CustomEvent) => {
+      setUser(e.detail.user);
+      setAvatarRefresh(Date.now());
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('userUpdated', handleUserUpdate as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleUserUpdate as EventListener);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -39,14 +51,16 @@ export default function Navbar() {
 
   const avatarUrl = user?.avatar
     ? (() => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//localhost:5000`;
+        let url;
         if (user.avatar.startsWith('http')) {
-          return user.avatar;
+          url = user.avatar;
         } else if (user.avatar.startsWith('/')) {
-          return `${apiUrl}${user.avatar}`;
+          url = `${apiUrl}${user.avatar}`;
         } else {
-          return `${apiUrl}/${user.avatar}`;
+          url = `${apiUrl}/${user.avatar}`;
         }
+        return `${url}?refresh=${avatarRefresh}`;
       })()
     : null;
 
