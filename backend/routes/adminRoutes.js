@@ -4,6 +4,14 @@ const adminController = require('../controllers/adminController');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const uploadMiddleware = require('../middleware/upload');
 
+// User management
+router.get(
+  '/users',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getAllUsers
+);
+
 // Course management
 router.post(
   '/courses',
