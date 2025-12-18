@@ -71,6 +71,37 @@ router.put(
   adminController.updateOrderStatus
 );
 
+// Product management
+router.post(
+  '/products',
+  authMiddleware,
+  adminMiddleware,
+  uploadMiddleware.single('image'),
+  adminController.createProduct
+);
+
+router.get(
+  '/products',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getAllProducts
+);
+
+router.put(
+  '/products/:productId',
+  authMiddleware,
+  adminMiddleware,
+  uploadMiddleware.single('image'),
+  adminController.updateProduct
+);
+
+router.delete(
+  '/products/:productId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteProduct
+);
+
 // Dashboard
 router.get(
   '/dashboard/stats',

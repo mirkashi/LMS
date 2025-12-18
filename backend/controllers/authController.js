@@ -162,7 +162,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     res.status(200).json({
       success: true,
@@ -302,18 +302,10 @@ exports.adminLogin = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
 
-    if (!user) {
+    if (!user || user.role !== 'admin') {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
-      });
-    }
-
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Admin privileges required.',
       });
     }
 
@@ -326,7 +318,14 @@ exports.adminLogin = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email first',
+      });
+    }
+
+    const token = generateToken(user._id, user.role);
 
     res.status(200).json({
       success: true,

@@ -1,6 +1,7 @@
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
@@ -361,6 +362,140 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch users',
+      error: error.message,
+    });
+  }
+};
+
+// Create Product (Admin)
+exports.createProduct = async (req, res) => {
+  try {
+    const { name, description, category, price, stock } = req.body;
+    const adminId = req.user.userId;
+
+    if (!name || !description || !category || !price) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields',
+      });
+    }
+
+    const product = new Product({
+      name,
+      description,
+      category,
+      price,
+      stock: stock || 0,
+      createdBy: adminId,
+    });
+
+    if (req.file) {
+      product.image = `/uploads/${req.file.filename}`;
+    }
+
+    await product.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
+      error: error.message,
+    });
+  }
+};
+
+// Get All Products (Admin)
+exports.getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find()
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch products',
+      error: error.message,
+    });
+  }
+};
+
+// Update Product (Admin)
+exports.updateProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { name, description, category, price, stock, isAvailable } = req.body;
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    if (name) product.name = name;
+    if (description) product.description = description;
+    if (category) product.category = category;
+    if (price !== undefined) product.price = price;
+    if (stock !== undefined) product.stock = stock;
+    if (isAvailable !== undefined) product.isAvailable = isAvailable;
+
+    if (req.file) {
+      product.image = `/uploads/${req.file.filename}`;
+    }
+
+    product.updatedAt = Date.now();
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product',
+      error: error.message,
+    });
+  }
+};
+
+// Delete Product (Admin)
+exports.deleteProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const product = await Product.findByIdAndDelete(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Product deleted successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete product',
       error: error.message,
     });
   }

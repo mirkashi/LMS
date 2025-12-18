@@ -48,6 +48,7 @@ if (pgEnabled) {
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/courses', require('./routes/courseRoutes'));
+app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 
