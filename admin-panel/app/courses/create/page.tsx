@@ -1,29 +1,32 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
-import { ArrowLeftIcon, CloudArrowUpIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CloudArrowUpIcon, CheckCircleIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
-export default function CreateProductPage() {
+export default function CreateCoursePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
     category: '',
     price: '',
-    stock: '',
+    instructor: '',
+    duration: '',
+    syllabus: '',
   });
   const [image, setImage] = useState<File | null>(null);
+  const [pdfFiles, setPdfFiles] = useState<File[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -58,6 +61,15 @@ export default function CreateProductPage() {
     }
   };
 
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setPdfFiles(prev => [...prev, ...files]);
+  };
+
+  const removePdfFile = (index: number) => {
+    setPdfFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -87,14 +99,26 @@ export default function CreateProductPage() {
     }
   };
 
+  const handlePdfDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    setPdfFiles(prev => [...prev, ...pdfFiles]);
+  };
+
   const validateStep = (step: number) => {
     switch (step) {
       case 1:
-        return formData.name.trim() && formData.description.trim() && formData.category;
+        return formData.title.trim() && formData.description.trim() && formData.category;
       case 2:
-        return formData.price && parseFloat(formData.price) >= 0;
+        return formData.instructor.trim() && formData.duration.trim();
       case 3:
-        return true; // Image is optional
+        return formData.price && parseFloat(formData.price) >= 0;
+      case 4:
+        return true; // Media files are optional
       default:
         return false;
     }
@@ -147,7 +171,7 @@ export default function CreateProductPage() {
 
     setError('');
     setLoading(true);
-    console.log('Starting product creation...');
+    console.log('Starting course creation...');
 
     const token = localStorage.getItem('adminToken');
     if (!token) {
@@ -157,18 +181,25 @@ export default function CreateProductPage() {
 
     try {
       const formDataObj = new FormData();
-      formDataObj.append('name', formData.name);
+      formDataObj.append('title', formData.title);
       formDataObj.append('description', formData.description);
       formDataObj.append('category', formData.category);
       formDataObj.append('price', formData.price);
-      formDataObj.append('stock', formData.stock || '0');
+      formDataObj.append('instructor', formData.instructor);
+      formDataObj.append('duration', formData.duration);
+      formDataObj.append('syllabus', formData.syllabus);
 
       if (image) {
         formDataObj.append('image', image);
       }
 
+      // Add PDF files
+      pdfFiles.forEach((file, index) => {
+        formDataObj.append(`pdfFiles`, file);
+      });
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/products`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
         {
           method: 'POST',
           headers: {
@@ -180,26 +211,27 @@ export default function CreateProductPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.message || 'Failed to create product');
+        setError(data.message || 'Failed to create course');
         setLoading(false);
         return;
       }
 
       const result = await response.json();
-      console.log('Product created successfully:', result);
-      router.push('/products');
+      console.log('Course created successfully:', result);
+      router.push('/courses');
     } catch (err) {
       setError('An error occurred. Please try again.');
-      console.error('Error creating product:', err);
+      console.error('Error creating course:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const steps = [
-    { id: 1, name: 'Basic Info', description: 'Product details' },
-    { id: 2, name: 'Pricing & Stock', description: 'Set price and inventory' },
-    { id: 3, name: 'Media & Review', description: 'Upload images and finalize' },
+    { id: 1, name: 'Basic Info', description: 'Course details' },
+    { id: 2, name: 'Instructor & Duration', description: 'Course structure' },
+    { id: 3, name: 'Pricing', description: 'Set course price' },
+    { id: 4, name: 'Media & Files', description: 'Upload materials' },
   ];
 
   return (
@@ -209,14 +241,14 @@ export default function CreateProductPage() {
           {/* Header */}
           <div className="mb-8">
             <Link
-              href="/products"
+              href="/courses"
               className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-4"
             >
               <ArrowLeftIcon className="w-5 h-5 mr-2" />
-              Back to Products
+              Back to Courses
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Product</h1>
-            <p className="text-gray-600">Follow the steps below to create your new product.</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Course</h1>
+            <p className="text-gray-600">Build a comprehensive course with all necessary materials and information.</p>
           </div>
 
           {/* Progress Indicator */}
@@ -271,16 +303,16 @@ export default function CreateProductPage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Product Name *
+                      Course Title *
                     </label>
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="title"
+                      value={formData.title}
                       onChange={handleInputChange}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter a compelling product name"
+                      placeholder="Enter an engaging course title"
                     />
                   </div>
 
@@ -295,7 +327,7 @@ export default function CreateProductPage() {
                       required
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Describe your product in detail..."
+                      placeholder="Describe what students will learn in this course..."
                     />
                   </div>
 
@@ -311,64 +343,97 @@ export default function CreateProductPage() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select a category</option>
-                      <option value="course-bundle">Course Bundle</option>
-                      <option value="ebook">eBook</option>
-                      <option value="tools">Tools & Resources</option>
-                      <option value="templates">Templates</option>
-                      <option value="coaching">Coaching</option>
+                      <option value="programming">Programming</option>
+                      <option value="design">Design</option>
+                      <option value="business">Business</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="data-science">Data Science</option>
+                      <option value="language">Language Learning</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Pricing & Stock */}
+              {/* Step 2: Instructor & Duration */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Price ($) *
-                      </label>
-                      <input
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleInputChange}
-                        required
-                        step="0.01"
-                        min="0"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0.00"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">Set the price for your product</p>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Instructor Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="instructor"
+                      value={formData.instructor}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Full name of the course instructor"
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Stock Quantity
-                      </label>
-                      <input
-                        type="number"
-                        name="stock"
-                        value={formData.stock}
-                        onChange={handleInputChange}
-                        min="0"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Unlimited"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">Leave empty for unlimited stock</p>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Course Duration *
+                    </label>
+                    <input
+                      type="text"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 8 weeks, 40 hours, 20 lessons"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Course Syllabus
+                    </label>
+                    <textarea
+                      name="syllabus"
+                      value={formData.syllabus}
+                      onChange={handleInputChange}
+                      rows={6}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Outline the course curriculum, modules, and learning objectives..."
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Media & Review */}
+              {/* Step 3: Pricing */}
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Product Image
+                      Course Price ($) *
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      required
+                      step="0.01"
+                      min="0"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Set the price for your course. Use 0 for free courses.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Media & Files */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  {/* Course Image */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Course Image
                     </label>
                     <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -385,7 +450,7 @@ export default function CreateProductPage() {
                         <div className="space-y-4">
                           <img
                             src={imagePreview}
-                            alt="Preview"
+                            alt="Course preview"
                             className="max-w-xs max-h-48 mx-auto rounded-lg object-cover"
                           />
                           <div>
@@ -404,9 +469,9 @@ export default function CreateProductPage() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <CloudArrowUpIcon className="w-12 h-12 text-gray-400 mx-auto" />
+                          <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto" />
                           <div>
-                            <p className="text-lg font-medium text-gray-900">Upload product image</p>
+                            <p className="text-lg font-medium text-gray-900">Upload course image</p>
                             <p className="text-gray-500">Drag and drop an image here, or click to browse</p>
                           </div>
                           <input
@@ -414,13 +479,13 @@ export default function CreateProductPage() {
                             accept="image/*"
                             onChange={handleImageChange}
                             className="hidden"
-                            id="image-upload"
+                            id="course-image-upload"
                           />
                           <label
-                            htmlFor="image-upload"
+                            htmlFor="course-image-upload"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
                           >
-                            Choose File
+                            Choose Image
                           </label>
                         </div>
                       )}
@@ -428,25 +493,67 @@ export default function CreateProductPage() {
                     <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG or PNG format</p>
                   </div>
 
-                  {/* Review Section */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Your Product</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Basic Information</h4>
-                        <dl className="space-y-1">
-                          <div><dt className="text-sm text-gray-500 inline">Name:</dt> <dd className="text-sm text-gray-900 inline ml-2">{formData.name || 'Not set'}</dd></div>
-                          <div><dt className="text-sm text-gray-500 inline">Category:</dt> <dd className="text-sm text-gray-900 inline ml-2 capitalize">{formData.category?.replace('-', ' ') || 'Not set'}</dd></div>
-                        </dl>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Pricing & Stock</h4>
-                        <dl className="space-y-1">
-                          <div><dt className="text-sm text-gray-500 inline">Price:</dt> <dd className="text-sm text-gray-900 inline ml-2">${formData.price || '0.00'}</dd></div>
-                          <div><dt className="text-sm text-gray-500 inline">Stock:</dt> <dd className="text-sm text-gray-900 inline ml-2">{formData.stock || 'Unlimited'}</dd></div>
-                        </dl>
+                  {/* PDF Files */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Course Materials (PDFs)
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        dragActive
+                          ? 'border-blue-400 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handlePdfDrop}
+                    >
+                      <div className="space-y-4">
+                        <DocumentIcon className="w-12 h-12 text-gray-400 mx-auto" />
+                        <div>
+                          <p className="text-lg font-medium text-gray-900">Upload course materials</p>
+                          <p className="text-gray-500">Drag and drop PDF files here, or click to browse</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          multiple
+                          onChange={handlePdfChange}
+                          className="hidden"
+                          id="pdf-upload"
+                        />
+                        <label
+                          htmlFor="pdf-upload"
+                          className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors"
+                        >
+                          Choose PDFs
+                        </label>
                       </div>
                     </div>
+
+                    {/* Uploaded PDFs */}
+                    {pdfFiles.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-sm font-medium text-gray-900">Uploaded Files:</p>
+                        {pdfFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center">
+                              <DocumentIcon className="w-5 h-5 text-red-500 mr-2" />
+                              <span className="text-sm text-gray-900">{file.name}</span>
+                              <span className="text-xs text-gray-500 ml-2">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removePdfFile(index)}
+                              className="text-red-600 hover:text-red-700 text-sm font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -477,7 +584,7 @@ export default function CreateProductPage() {
                     disabled={loading || !validateStep(currentStep)}
                     className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {loading ? 'Creating Product...' : 'Create Product'}
+                    {loading ? 'Creating Course...' : 'Create Course'}
                   </button>
                 )}
               </div>

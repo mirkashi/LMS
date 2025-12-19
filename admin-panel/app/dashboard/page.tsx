@@ -215,7 +215,7 @@ export default function AdminDashboard() {
           {/* Revenue Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
-            <div className="h-64">
+            <div style={{ width: '100%', height: '256px', minHeight: '256px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData?.revenue}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
           {/* User Growth Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h3>
-            <div className="h-64">
+            <div style={{ width: '100%', height: '256px', minHeight: '256px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData?.users}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
           {/* Product Categories */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Categories</h3>
-            <div className="h-48">
+            <div style={{ width: '100%', height: '192px', minHeight: '192px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
