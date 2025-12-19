@@ -175,7 +175,7 @@ export default function CoursesPage() {
           {/* Status Distribution */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Status Distribution</h3>
-            <div className="h-64">
+            <div style={{ width: '100%', height: '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -211,7 +211,7 @@ export default function CoursesPage() {
           {/* Category Distribution */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Courses by Category</h3>
-            <div className="h-64">
+            <div style={{ width: '100%', height: '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
