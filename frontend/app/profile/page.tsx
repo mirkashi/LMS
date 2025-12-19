@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 interface ProfileData {
   name: string;
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageRefresh, setImageRefresh] = useState(0);
+  const [activeTab, setActiveTab] = useState('settings');
 
   const previewUrl = useMemo(() => {
     if (file) return URL.createObjectURL(file);
@@ -108,7 +110,6 @@ export default function ProfilePage() {
       formData.append("bio", profile.bio || "");
       if (password) {
         formData.append("password", password);
-        formData.append("confirmPassword", confirmPassword);
       }
       if (file) {
         formData.append("avatar", file);
@@ -123,264 +124,243 @@ export default function ProfilePage() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to update profile");
       }
 
-      setMessage("Profile updated successfully");
-      setPassword("");
-      setConfirmPassword("");
-      setFile(null);
-      setImageRefresh(Date.now());
       setProfile({
         name: data.data.name,
         email: data.data.email,
-        phone: data.data.phone || "",
-        bio: data.data.bio || "",
-        avatar: data.data.avatar || "",
+        phone: data.data.phone,
+        bio: data.data.bio,
+        avatar: data.data.avatar,
       });
-
-      // Sync localStorage user snapshot for navbar dropdown
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        const updatedUser = { ...parsed, name: data.data.name, email: data.data.email, avatar: data.data.avatar };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        // Trigger custom event for navbar update
-        window.dispatchEvent(new CustomEvent('userUpdated', {
-          detail: { user: updatedUser },
-        }));
-      }
+      
+      // Update local storage user data
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const updatedUser = { ...currentUser, ...data.data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Dispatch event to update navbar
+      window.dispatchEvent(new CustomEvent('userUpdated', { detail: { user: updatedUser } }));
+      
+      setImageRefresh(Date.now());
+      setFile(null);
+      setPassword("");
+      setConfirmPassword("");
+      setMessage("Profile updated successfully");
     } catch (err: any) {
-      setError(err.message || "Update failed");
+      setError(err.message || "Failed to update profile");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-12">
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-        .animate-slide-in-left {
-          animation: slideInLeft 0.6s ease-out forwards;
-        }
-        .animate-slide-in-right {
-          animation: slideInRight 0.6s ease-out forwards;
-        }
-        .stagger-1 { animation-delay: 0.1s; opacity: 0; }
-        .stagger-2 { animation-delay: 0.2s; opacity: 0; }
-        .stagger-3 { animation-delay: 0.3s; opacity: 0; }
-      `}</style>
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-4 animate-fade-in-up">
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-primary font-semibold">Profile</p>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">Account & Identity</h1>
-            <p className="text-gray-600 mt-2">Keep your personal information polished and up to date.</p>
-          </div>
-          <div className="flex items-center space-x-3 bg-white shadow-sm border border-gray-100 rounded-full px-4 py-2 animate-slide-in-right">
-            <div className="w-10 h-10 rounded-full bg-gradient-primary text-white flex items-center justify-center font-semibold">
-              {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{profile.name || "User"}</p>
-              <p className="text-xs text-gray-500">{profile.email}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 animate-slide-in-left stagger-1">
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sticky top-24 space-y-6 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm bg-gray-50 transition-transform hover:scale-105 duration-300">
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Avatar preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">👤</div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Profile photo</p>
-                  <p className="text-base font-semibold text-gray-900">{profile.name || "User"}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full text-center px-4 py-3 rounded-lg border border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 transition"
-              >
-                Upload new photo
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png, image/jpeg, image/webp"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <p className="text-xs text-gray-500">PNG, JPG, or WEBP. Max 5MB.</p>
-
-              <div className="border-t border-gray-100 pt-4 space-y-2">
-                <p className="text-sm font-semibold text-gray-900">Tips</p>
-                <p className="text-sm text-gray-600">Use a clear, centered headshot. This appears in your navigation dropdown.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 animate-slide-in-right stagger-2">
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8 space-y-6 hover:shadow-md transition-shadow duration-300">
-              {message && (
-                <div className="rounded-md bg-green-50 p-4 text-green-700 border border-green-200 text-sm animate-fade-in-up">
-                  {message}
-                </div>
-              )}
-              {error && (
-                <div className="rounded-md bg-red-50 p-4 text-red-700 border border-red-200 text-sm animate-fade-in-up">
-                  {error}
-                </div>
-              )}
-
-              <form className="space-y-8" onSubmit={handleSubmit}>
-                <section className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-                    <p className="text-sm text-gray-500">Your name and contact details.</p>
+    <main className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Sidebar */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 text-center border-b border-gray-100">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 ring-4 ring-white shadow-lg">
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white text-3xl font-bold">
+                        {profile.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                      <input
-                        type="text"
-                        value={profile.name}
-                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <input
-                        type="email"
-                        value={profile.email}
-                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">Phone</label>
-                      <input
-                        type="tel"
-                        value={profile.phone || ""}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        placeholder="e.g. +1 555 123 4567"
-                      />
-                    </div>
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">Bio</label>
-                      <textarea
-                        value={profile.bio || ""}
-                        onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        rows={3}
-                        placeholder="Tell us about yourself"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <section className="space-y-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Security</h2>
-                    <p className="text-sm text-gray-500">Update your password when needed.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">New Password</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        placeholder="Leave blank to keep current"
-                      />
-                    </div>
-                    <div className="space-y-2 transform transition-transform hover:scale-105 duration-300">
-                      <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                        placeholder="Retype new password"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <div className="flex items-center justify-between pt-2 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
-                  <div className="text-sm text-gray-500">Your changes will be reflected across the platform.</div>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-3 bg-gradient-primary text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-60 transform hover:scale-105 duration-200"
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-100 hover:bg-gray-50 transition"
                   >
-                    {saving ? "Saving..." : "Save Changes"}
+                    📷
                   </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    accept="image/*"
+                  />
                 </div>
-              </form>
+                <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
+                <p className="text-sm text-gray-500">{profile.email}</p>
+              </div>
+              <nav className="p-2">
+                {[
+                  { id: 'settings', label: 'Account Settings', icon: '⚙️' },
+                  { id: 'activity', label: 'Activity History', icon: 'clock' },
+                  { id: 'billing', label: 'Billing & Plans', icon: '💳' },
+                  { id: 'notifications', label: 'Notifications', icon: '🔔' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${
+                      activeTab === item.id 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{item.icon === 'clock' ? '🕒' : item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
             </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-9">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8"
+            >
+              {activeTab === 'settings' && (
+                <div>
+                  <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Settings</h1>
+                    <p className="text-gray-500">Manage your personal information and security preferences.</p>
+                  </div>
+
+                  {message && (
+                    <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-2">
+                      <span>✓</span> {message}
+                    </div>
+                  )}
+                  {error && (
+                    <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+                      <span>⚠️</span> {error}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <input
+                          type="text"
+                          value={profile.name}
+                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input
+                          type="email"
+                          value={profile.email}
+                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={profile.phone}
+                          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                          placeholder="+1 (555) 000-0000"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                        <input
+                          type="text"
+                          value={profile.bio}
+                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                          placeholder="Tell us a bit about yourself"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-gray-100">
+                      <h3 className="text-lg font-bold text-gray-900 mb-6">Security</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                            placeholder="Leave blank to keep current"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-6">
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className={`px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 ${
+                          saving ? 'opacity-70 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {saving ? 'Saving Changes...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {activeTab === 'activity' && (
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-6">Activity History</h1>
+                  <div className="space-y-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                          📝
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900">Course Completed</h4>
+                          <p className="text-sm text-gray-600">You successfully completed "Advanced eBay Strategies"</p>
+                          <span className="text-xs text-gray-400 mt-1 block">2 days ago</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Placeholders for other tabs */}
+              {(activeTab === 'billing' || activeTab === 'notifications') && (
+                <div className="text-center py-20">
+                  <div className="text-6xl mb-4">🚧</div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Coming Soon</h2>
+                  <p className="text-gray-500">This section is currently under development.</p>
+                </div>
+              )}
+            </motion.div>
           </div>
         </div>
       </div>
