@@ -6,8 +6,8 @@ const Product = require('../models/Product');
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, category, price, duration, level } = req.body;
-    const instructorId = req.user.userId;
+    const { title, description, category, price, duration, level, syllabus } = req.body;
+    const userId = req.user.userId;
 
     if (!title || !description || !category || !price) {
       return res.status(400).json({
@@ -23,12 +23,33 @@ exports.createCourse = async (req, res) => {
       price,
       duration: duration || 0,
       level: level || 'beginner',
-      instructor: instructorId,
+      instructor: userId, // Use logged-in admin as instructor ID
       modules: [],
     });
 
-    if (req.file) {
-      course.thumbnail = `/uploads/${req.file.filename}`;
+    // Handle image upload (frontend sends 'image', we store as 'thumbnail')
+    if (req.files && req.files.image && req.files.image[0]) {
+      course.thumbnail = `/uploads/${req.files.image[0].filename}`;
+    }
+
+    // Handle PDF files - store as resources in a dedicated module
+    if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
+      const pdfUrls = req.files.pdfFiles.map(file => `/uploads/${file.filename}`);
+      
+      // Create a module for course materials with unique identifier
+      const MATERIALS_MODULE_TITLE = '__course_materials__';
+      course.modules.push({
+        title: MATERIALS_MODULE_TITLE,
+        description: 'Downloadable course materials and resources',
+        order: 0,
+        lessons: [{
+          title: 'Course Resources',
+          description: syllabus || 'Course materials and resources',
+          order: 0,
+          type: 'pdf',
+          resources: pdfUrls
+        }]
+      });
     }
 
     await course.save();
@@ -78,8 +99,40 @@ exports.updateCourse = async (req, res) => {
     if (level) course.level = level;
     if (isPublished !== undefined) course.isPublished = isPublished;
 
-    if (req.file) {
-      course.thumbnail = `/uploads/${req.file.filename}`;
+    // Handle image upload (frontend sends 'image', we store as 'thumbnail')
+    if (req.files && req.files.image && req.files.image[0]) {
+      course.thumbnail = `/uploads/${req.files.image[0].filename}`;
+    }
+
+    // Handle PDF files - add/update resources in course materials module
+    if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
+      const pdfUrls = req.files.pdfFiles.map(file => `/uploads/${file.filename}`);
+      
+      // Use the same unique identifier as in createCourse
+      const MATERIALS_MODULE_TITLE = '__course_materials__';
+      
+      // Find or create course materials module
+      let materialsModule = course.modules.find(m => m.title === MATERIALS_MODULE_TITLE);
+      if (materialsModule) {
+        // Update existing module
+        if (materialsModule.lessons && materialsModule.lessons.length > 0) {
+          materialsModule.lessons[0].resources = pdfUrls;
+        }
+      } else {
+        // Create new materials module
+        course.modules.push({
+          title: MATERIALS_MODULE_TITLE,
+          description: 'Downloadable course materials and resources',
+          order: course.modules.length,
+          lessons: [{
+            title: 'Course Resources',
+            description: 'Course materials and resources',
+            order: 0,
+            type: 'pdf',
+            resources: pdfUrls
+          }]
+        });
+      }
     }
 
     await course.save();

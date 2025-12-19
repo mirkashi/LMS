@@ -219,7 +219,7 @@ export default function AdminLoginForm() {
                       aria-describedby="captcha-description"
                     />
                     <p id="captcha-description" className="text-xs text-gray-500">
-                      Enter the characters shown above to verify you're not a robot
+                      Enter the characters shown above to verify you&apos;re not a robot
                     </p>
                   </div>
                 </div>

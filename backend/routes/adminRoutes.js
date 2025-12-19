@@ -17,7 +17,10 @@ router.post(
   '/courses',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.single('thumbnail'),
+  uploadMiddleware.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdfFiles', maxCount: 10 }
+  ]),
   adminController.createCourse
 );
 
@@ -25,7 +28,10 @@ router.put(
   '/courses/:courseId',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.single('thumbnail'),
+  uploadMiddleware.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdfFiles', maxCount: 10 }
+  ]),
   adminController.updateCourse
 );
 
