@@ -46,34 +46,39 @@ export default function StudentDashboard() {
       }
     };
 
-    checkAuth();
-  }, [router]);
+      try {
+        const fetchData = async () => {
+          const [coursesRes, ordersRes] = await Promise.all([
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/enrolled/list`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/myorders`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          ]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-        </div>
-      </div>
-    );
-  }
+          if (coursesRes.ok) {
+            const data = await coursesRes.json();
+            setEnrolledCourses(data.data || []);
+          }
+          
+          if (ordersRes.ok) {
+            const data = await ordersRes.json();
+            setOrders(data.data || []);
+          }
+        };
 
-  return (
-    <main className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Courses Section */}
-        <div className="mb-16">
-          <div className="flex justify-between items-end mb-8">
-            <div>
-              <h1 className="text-3xl font-serif font-bold text-gray-900">My Learning</h1>
-              <p className="text-gray-600 mt-2">Continue learning and master new skills</p>
-            </div>
+        // Initial fetch
+        await fetchData();
+        setLoading(false);
+
+        // Poll for real-time status updates every 10s
+        const interval = setInterval(fetchData, 10000);
+        return () => clearInterval(interval);
             <Link href="/courses" className="text-gray-900 font-medium hover:underline">
               Browse all courses
             </Link>
-          </div>
+        // handled above
 
           {enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
