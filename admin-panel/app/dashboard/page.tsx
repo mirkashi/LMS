@@ -178,7 +178,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-          <p className="text-gray-600">Welcome back, {user?.name || 'Admin'}. Here's what's happening with your LMS platform.</p>
+          <p className="text-gray-600">Welcome back, {user?.name || 'Admin'}. Here&apos;s what&apos;s happening with your LMS platform.</p>
         </div>
 
         {/* Stats Cards */}
