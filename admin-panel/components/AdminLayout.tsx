@@ -11,7 +11,8 @@ import {
   ClipboardDocumentListIcon,
   Bars3Icon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline';
 
 interface AdminLayoutProps {
@@ -46,6 +47,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     { name: 'Courses', href: '/courses', icon: BookOpenIcon },
     { name: 'Products', href: '/products', icon: ShoppingBagIcon },
     { name: 'Orders', href: '/orders', icon: ClipboardDocumentListIcon },
+    { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
   ];
 
   return (

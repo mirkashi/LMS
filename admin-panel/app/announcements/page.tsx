@@ -10,11 +10,15 @@ export default function AnnouncementsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
+    title: '',
     message: '',
+    content: '',
     type: 'info',
     isActive: true,
     startDate: '',
-    endDate: ''
+    endDate: '',
+    visibility: 'global',
+    targetAudience: ''
   });
 
   const fetchAnnouncements = async () => {
@@ -46,6 +50,13 @@ export default function AnnouncementsPage() {
       : `${process.env.NEXT_PUBLIC_API_URL}/announcements`;
     
     const method = editingId ? 'PUT' : 'POST';
+    const payload = {
+      ...formData,
+      audience: formData.targetAudience
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    };
 
     try {
       const res = await fetch(url, {
@@ -54,13 +65,23 @@ export default function AnnouncementsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         setIsModalOpen(false);
         setEditingId(null);
-        setFormData({ message: '', type: 'info', isActive: true, startDate: '', endDate: '' });
+        setFormData({
+          title: '',
+          message: '',
+          content: '',
+          type: 'info',
+          isActive: true,
+          startDate: '',
+          endDate: '',
+          visibility: 'global',
+          targetAudience: ''
+        });
         fetchAnnouncements();
       }
     } catch (error) {
@@ -86,11 +107,15 @@ export default function AnnouncementsPage() {
   const openEdit = (announcement: any) => {
     setEditingId(announcement._id);
     setFormData({
+      title: announcement.title || '',
       message: announcement.message,
+      content: announcement.content || '',
       type: announcement.type,
       isActive: announcement.isActive,
       startDate: announcement.startDate ? announcement.startDate.split('T')[0] : '',
-      endDate: announcement.endDate ? announcement.endDate.split('T')[0] : ''
+      endDate: announcement.endDate ? announcement.endDate.split('T')[0] : '',
+      visibility: announcement.visibility || 'global',
+      targetAudience: (announcement.audience || []).join(', ')
     });
     setIsModalOpen(true);
   };
@@ -103,7 +128,17 @@ export default function AnnouncementsPage() {
           <button
             onClick={() => {
               setEditingId(null);
-              setFormData({ message: '', type: 'info', isActive: true, startDate: '', endDate: '' });
+              setFormData({
+                title: '',
+                message: '',
+                content: '',
+                type: 'info',
+                isActive: true,
+                startDate: '',
+                endDate: '',
+                visibility: 'global',
+                targetAudience: ''
+              });
               setIsModalOpen(true);
             }}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -120,16 +155,19 @@ export default function AnnouncementsPage() {
             <table className="w-full text-left">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Title</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Message</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Dates</th>
+                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Visibility</th>
+                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Window</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {announcements.map((ann: any) => (
                   <tr key={ann._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{ann.title || 'Untitled'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{ann.message}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full capitalize ${
@@ -147,6 +185,9 @@ export default function AnnouncementsPage() {
                       }`}>
                         {ann.isActive ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700 capitalize">
+                      {ann.visibility || 'global'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(ann.startDate).toLocaleDateString()} 
@@ -175,6 +216,16 @@ export default function AnnouncementsPage() {
               <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Announcement' : 'New Announcement'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                   <textarea
                     required
@@ -182,6 +233,17 @@ export default function AnnouncementsPage() {
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Details (appears on homepage bar hover)</label>
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    placeholder="Longer description or context"
                   />
                 </div>
                 
@@ -210,6 +272,31 @@ export default function AnnouncementsPage() {
                       />
                       <span className="text-sm font-medium text-gray-700">Active</span>
                     </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+                    <select
+                      value={formData.visibility}
+                      onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="global">Global</option>
+                      <option value="targeted">Targeted</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+                    <input
+                      type="text"
+                      value={formData.targetAudience}
+                      onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                      placeholder="e.g. premium, students"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Comma-separated tags for targeted visibility.</p>
                   </div>
                 </div>
 

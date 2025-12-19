@@ -1,14 +1,15 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
 import { HeartIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 export default function Shop() {
   const { addToCart, addToWishlist, removeFromWishlist, isInWishlist } = useShop();
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ category: '', minPrice: '', maxPrice: '', search: '' });
@@ -77,20 +78,21 @@ export default function Shop() {
 
   const categories = Array.from(new Set(products.map((p: any) => p.category)));
 
-  const handleWishlist = (e: React.MouseEvent, product: any) => {
+  const handleWishlist = async (e: React.MouseEvent, product: any) => {
     e.preventDefault();
     e.stopPropagation();
     if (isInWishlist(product._id)) {
-      removeFromWishlist(product._id);
+      await removeFromWishlist(product._id);
     } else {
-      addToWishlist(product);
+      await addToWishlist(product);
     }
   };
 
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+  const handleAddToCart = async (e: React.MouseEvent, product: any) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
+    await addToCart(product);
+    router.push('/checkout');
   };
 
   if (loading) {
@@ -233,8 +235,8 @@ export default function Shop() {
                     animate={{ opacity: 1, y: 0 }}
                     className="group"
                   >
-                    <Link href={`/shop/${product._id}`} className="block">
-                      <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden mb-4">
+                    <div className="block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
+                      <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
                         {product.image ? (
                           <img
                             src={product.image}
@@ -251,12 +253,37 @@ export default function Shop() {
                             Sold Out
                           </div>
                         )}
-                        
-                        {/* Action Buttons Overlay */}
-                        <div className="absolute top-2 left-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      </div>
+
+                      <div className="p-4">
+                        <div className="text-center mb-3">
+                          <h3 className="text-base font-semibold text-gray-900 mb-1">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">{product.category}</p>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-sm font-bold text-gray-900">${product.price}</span>
+                            {product.rating > 0 && (
+                              <div className="flex items-center text-yellow-500 text-xs">
+                                <span>★</span>
+                                <span className="ml-1 text-gray-400">{product.rating}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            onClick={(e) => handleAddToCart(e, product)}
+                            className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-3 py-2 text-sm font-semibold uppercase tracking-wide hover:bg-gray-800 transition-colors"
+                          >
+                            <ShoppingBagIcon className="w-4 h-4" />
+                            Add to Cart
+                          </button>
                           <button
                             onClick={(e) => handleWishlist(e, product)}
-                            className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                            className="p-2 border border-gray-200 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                            aria-label="Add to wishlist"
                           >
                             {isInWishlist(product._id) ? (
                               <HeartIconSolid className="w-5 h-5 text-red-500" />
@@ -265,35 +292,8 @@ export default function Shop() {
                             )}
                           </button>
                         </div>
-
-                        {/* Quick Add Overlay */}
-                        <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center">
-                          <button 
-                            onClick={(e) => handleAddToCart(e, product)}
-                            className="w-full bg-white/90 backdrop-blur text-gray-900 py-3 text-sm font-bold uppercase tracking-wider hover:bg-gray-900 hover:text-white transition-colors shadow-lg flex items-center justify-center gap-2"
-                          >
-                            <ShoppingBagIcon className="w-4 h-4" />
-                            Add to Cart
-                          </button>
-                        </div>
                       </div>
-                      
-                      <div className="text-center">
-                        <h3 className="text-base font-medium text-gray-900 group-hover:text-gray-600 transition-colors mb-1">
-                          {product.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-2">{product.category}</p>
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">${product.price}</span>
-                          {product.rating > 0 && (
-                            <div className="flex items-center text-yellow-500 text-xs">
-                              <span>★</span>
-                              <span className="ml-1 text-gray-400">{product.rating}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
+                    </div>
                   </motion.div>
                 ))}
               </div>

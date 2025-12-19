@@ -4,16 +4,21 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HeartIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
+import { useShop } from '@/context/ShopContext';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { cartCount, wishlist } = useShop();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [avatarRefresh, setAvatarRefresh] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [cartPulse, setCartPulse] = useState(false);
+  const [wishPulse, setWishPulse] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +27,22 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (pathname === '/shop') {
+      setCartPulse(true);
+      const t = setTimeout(() => setCartPulse(false), 450);
+      return () => clearTimeout(t);
+    }
+  }, [cartCount, pathname]);
+
+  useEffect(() => {
+    if (pathname === '/shop') {
+      setWishPulse(true);
+      const t = setTimeout(() => setWishPulse(false), 450);
+      return () => clearTimeout(t);
+    }
+  }, [wishlist.length, pathname]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -117,6 +138,32 @@ export default function Navbar() {
 
           {/* Auth & Mobile Toggle */}
           <div className="flex items-center gap-4">
+            {pathname === '/shop' && (
+              <div className="hidden md:flex items-center gap-3">
+                <button
+                  className={`relative p-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all ${cartPulse ? 'animate-bounce' : ''}`}
+                  onClick={() => router.push('/checkout')}
+                  aria-label="View cart"
+                >
+                  <ShoppingBagIcon className="w-5 h-5 text-gray-800" />
+                  <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`relative p-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all ${wishPulse ? 'animate-bounce' : ''}`}
+                  onClick={() => router.push('/wishlist')}
+                  aria-label="View wishlist"
+                >
+                  <HeartIcon className="w-5 h-5 text-gray-800" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                    {wishlist.length}
+                  </span>
+                </button>
+              </div>
+            )}
+
             {isLoggedIn ? (
               <div className="relative">
                 <button

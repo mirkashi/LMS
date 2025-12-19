@@ -34,15 +34,19 @@ exports.getAnnouncements = async (req, res) => {
 // Create announcement (Admin)
 exports.createAnnouncement = async (req, res) => {
   try {
-    const { message, type, isActive, startDate, endDate } = req.body;
+    const { title, message, content, type, isActive, startDate, endDate, visibility, audience } = req.body;
     
     // If this one is active, optionally deactivate others? 
     // For now, we'll just let multiple exist but the public API only fetches the latest one.
     
     const announcement = await Announcement.create({
+      title,
       message,
+      content,
       type,
       isActive,
+      visibility,
+      audience,
       startDate,
       endDate
     });
