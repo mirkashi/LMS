@@ -1,15 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [avatarRefresh, setAvatarRefresh] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -19,7 +31,6 @@ export default function Navbar() {
       setUser(JSON.parse(userData));
     }
 
-    // Listen for localStorage changes from other tabs/profile page
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'user' && e.newValue) {
         setUser(JSON.parse(e.newValue));
@@ -27,7 +38,6 @@ export default function Navbar() {
       }
     };
 
-    // Listen for user updates from same tab (e.g., profile update)
     const handleUserUpdate = (e: CustomEvent) => {
       setUser(e.detail.user);
       setAvatarRefresh(Date.now());
@@ -64,96 +74,179 @@ export default function Navbar() {
       })()
     : null;
 
+  const navLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Courses', href: '/courses' },
+    { name: 'Shop', href: '/shop' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
+  ];
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-md">
+    <nav 
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white/90 backdrop-blur-md shadow-md py-2' : 'bg-transparent py-4'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            9tangle
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-blue-500/30 transition-all duration-300">
+              9
+            </div>
+            <span className={`text-xl font-bold tracking-tight transition-colors ${scrolled ? 'text-gray-900' : 'text-gray-900'}`}>
+              tangle
+            </span>
           </Link>
 
-          {/* Menu Items */}
-          <div className="hidden md:flex space-x-8">
-            <Link href="/" className="hover:text-primary transition">
-              Home
-            </Link>
-            <Link href="/courses" className="hover:text-primary transition">
-              Courses
-            </Link>
-            <Link href="/shop" className="hover:text-primary transition">
-              Shop
-            </Link>
-            <Link href="/about" className="hover:text-primary transition">
-              About
-            </Link>
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                  pathname === link.href ? 'text-blue-600' : 'text-gray-600'
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
           </div>
 
-          {/* Auth Section */}
-          <div className="flex items-center space-x-4">
+          {/* Auth & Mobile Toggle */}
+          <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow transition"
+                  className="flex items-center gap-2 p-1 pr-3 rounded-full border border-gray-200 bg-white hover:shadow-md transition-all duration-300"
                 >
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-primary text-white flex items-center justify-center text-sm font-semibold">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }} />
-                    ) : null}
-                    {!avatarUrl && (
-                      (user?.name || 'U').charAt(0).toUpperCase()
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                        {(user?.name || 'U').charAt(0).toUpperCase()}
+                      </div>
                     )}
                   </div>
-                  <svg
-                    className={`w-4 h-4 text-gray-600 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span className="text-xs font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">
+                    {user?.name?.split(' ')[0]}
+                  </span>
                 </button>
 
-                <div
-                  className={`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 origin-top-right transform transition-all duration-150 ease-out ${
-                    isDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
-                  }`}
-                >
-                  <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
-                    Dashboard
-                  </Link>
-                  {user?.role === 'admin' && (
-                    <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100">
-                      Admin Panel
-                    </Link>
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-1"
+                    >
+                      <Link href="/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Dashboard
+                      </Link>
+                      {user?.role === 'admin' && (
+                        <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Admin Panel
+                        </Link>
+                      )}
+                      <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Profile
+                      </Link>
+                      <div className="h-px bg-gray-100 my-1" />
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        Logout
+                      </button>
+                    </motion.div>
                   )}
-                  <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100">
-                    Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                  >
-                    Logout
-                  </button>
-                </div>
+                </AnimatePresence>
               </div>
             ) : (
-              <div className="space-x-2">
-                <Link href="/login" className="px-4 py-2 rounded-lg hover:bg-gray-100 transition">
-                  Login
+              <div className="hidden md:flex items-center gap-3">
+                <Link 
+                  href="/login" 
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2"
+                >
+                  Log in
                 </Link>
-                <Link href="/register" className="px-4 py-2 rounded-lg bg-gradient-primary text-white hover:shadow-lg transition">
-                  Register
+                <Link 
+                  href="/register" 
+                  className="text-sm font-medium text-white bg-gray-900 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
+                >
+                  Sign up
                 </Link>
               </div>
             )}
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
+          >
+            <div className="px-4 py-4 space-y-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`block px-4 py-2 rounded-lg text-base font-medium ${
+                    pathname === link.href 
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+              {!isLoggedIn && (
+                <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-center py-2 rounded-lg border border-gray-200 text-gray-600 font-medium"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-center py-2 rounded-lg bg-gray-900 text-white font-medium"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
