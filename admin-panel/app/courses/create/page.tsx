@@ -41,6 +41,8 @@ export default function CreateCoursePage() {
     setUser(user);
 
     // Development mode: Monitor for unexpected API calls
+    let cleanup = () => {}; // Default no-op cleanup
+    
     if (process.env.NODE_ENV === 'development') {
       const originalFetch = window.fetch;
       window.fetch = function(...args) {
@@ -55,10 +57,12 @@ export default function CreateCoursePage() {
         return originalFetch.apply(this, args);
       };
       
-      return () => {
+      cleanup = () => {
         window.fetch = originalFetch;
       };
     }
+    
+    return cleanup;
   }, [router, currentStep, loading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

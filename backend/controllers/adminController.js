@@ -6,7 +6,7 @@ const Product = require('../models/Product');
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, category, price, duration, level, instructor, syllabus } = req.body;
+    const { title, description, category, price, duration, level, syllabus } = req.body;
     const userId = req.user.userId;
 
     if (!title || !description || !category || !price) {
@@ -16,8 +16,6 @@ exports.createCourse = async (req, res) => {
       });
     }
 
-    // If instructor name is provided (string), we'll store it in a custom field
-    // Otherwise use the logged-in user as instructor
     const course = new Course({
       title,
       description,
@@ -34,13 +32,14 @@ exports.createCourse = async (req, res) => {
       course.thumbnail = `/uploads/${req.files.image[0].filename}`;
     }
 
-    // Handle PDF files - store as resources in the first module
+    // Handle PDF files - store as resources in a dedicated module
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
       const pdfUrls = req.files.pdfFiles.map(file => `/uploads/${file.filename}`);
       
-      // Create a default module for course materials
+      // Create a module for course materials with unique identifier
+      const MATERIALS_MODULE_TITLE = '__course_materials__';
       course.modules.push({
-        title: 'Course Materials',
+        title: MATERIALS_MODULE_TITLE,
         description: 'Downloadable course materials and resources',
         order: 0,
         lessons: [{
@@ -109,8 +108,11 @@ exports.updateCourse = async (req, res) => {
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
       const pdfUrls = req.files.pdfFiles.map(file => `/uploads/${file.filename}`);
       
+      // Use the same unique identifier as in createCourse
+      const MATERIALS_MODULE_TITLE = '__course_materials__';
+      
       // Find or create course materials module
-      let materialsModule = course.modules.find(m => m.title === 'Course Materials');
+      let materialsModule = course.modules.find(m => m.title === MATERIALS_MODULE_TITLE);
       if (materialsModule) {
         // Update existing module
         if (materialsModule.lessons && materialsModule.lessons.length > 0) {
@@ -119,7 +121,7 @@ exports.updateCourse = async (req, res) => {
       } else {
         // Create new materials module
         course.modules.push({
-          title: 'Course Materials',
+          title: MATERIALS_MODULE_TITLE,
           description: 'Downloadable course materials and resources',
           order: course.modules.length,
           lessons: [{
