@@ -3,8 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useShop } from '@/context/ShopContext';
+import { HeartIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 export default function Shop() {
+  const { addToCart, addToWishlist, removeFromWishlist, isInWishlist } = useShop();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ category: '', minPrice: '', maxPrice: '', search: '' });
@@ -72,6 +76,22 @@ export default function Shop() {
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const categories = Array.from(new Set(products.map((p: any) => p.category)));
+
+  const handleWishlist = (e: React.MouseEvent, product: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isInWishlist(product._id)) {
+      removeFromWishlist(product._id);
+    } else {
+      addToWishlist(product);
+    }
+  };
+
+  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product);
+  };
 
   if (loading) {
     return (
@@ -231,10 +251,29 @@ export default function Shop() {
                             Sold Out
                           </div>
                         )}
+                        
+                        {/* Action Buttons Overlay */}
+                        <div className="absolute top-2 left-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button
+                            onClick={(e) => handleWishlist(e, product)}
+                            className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                          >
+                            {isInWishlist(product._id) ? (
+                              <HeartIconSolid className="w-5 h-5 text-red-500" />
+                            ) : (
+                              <HeartIcon className="w-5 h-5 text-gray-900" />
+                            )}
+                          </button>
+                        </div>
+
                         {/* Quick Add Overlay */}
                         <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center">
-                          <button className="w-full bg-white/90 backdrop-blur text-gray-900 py-3 text-sm font-bold uppercase tracking-wider hover:bg-gray-900 hover:text-white transition-colors shadow-lg">
-                            View Details
+                          <button 
+                            onClick={(e) => handleAddToCart(e, product)}
+                            className="w-full bg-white/90 backdrop-blur text-gray-900 py-3 text-sm font-bold uppercase tracking-wider hover:bg-gray-900 hover:text-white transition-colors shadow-lg flex items-center justify-center gap-2"
+                          >
+                            <ShoppingBagIcon className="w-4 h-4" />
+                            Add to Cart
                           </button>
                         </div>
                       </div>

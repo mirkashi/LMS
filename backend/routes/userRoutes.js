@@ -106,4 +106,109 @@ router.get('/profile/avatar/:file', (req, res) => {
   res.sendFile(filePath);
 });
 
+// --- Wishlist Routes ---
+
+// Get Wishlist
+router.get('/wishlist', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).populate('wishlist');
+    res.json({ success: true, data: user.wishlist });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Add to Wishlist
+router.post('/wishlist/:productId', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user.wishlist.includes(req.params.productId)) {
+      user.wishlist.push(req.params.productId);
+      await user.save();
+    }
+    res.json({ success: true, data: user.wishlist });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Remove from Wishlist
+router.delete('/wishlist/:productId', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    user.wishlist = user.wishlist.filter(id => id.toString() !== req.params.productId);
+    await user.save();
+    res.json({ success: true, data: user.wishlist });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// --- Cart Routes ---
+
+// Get Cart
+router.get('/cart', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).populate('cart.product');
+    res.json({ success: true, data: user.cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Add to Cart
+router.post('/cart', authMiddleware, async (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+    const user = await User.findById(req.user.userId);
+    
+    const cartItemIndex = user.cart.findIndex(item => item.product.toString() === productId);
+    
+    if (cartItemIndex > -1) {
+      user.cart[cartItemIndex].quantity += quantity || 1;
+    } else {
+      user.cart.push({ product: productId, quantity: quantity || 1 });
+    }
+    
+    await user.save();
+    // Populate for return
+    await user.populate('cart.product');
+    res.json({ success: true, data: user.cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Update Cart Item Quantity
+router.put('/cart/:productId', authMiddleware, async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    const user = await User.findById(req.user.userId);
+    
+    const cartItem = user.cart.find(item => item.product.toString() === req.params.productId);
+    if (cartItem) {
+      cartItem.quantity = quantity;
+      await user.save();
+    }
+    
+    await user.populate('cart.product');
+    res.json({ success: true, data: user.cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Remove from Cart
+router.delete('/cart/:productId', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    user.cart = user.cart.filter(item => item.product.toString() !== req.params.productId);
+    await user.save();
+    await user.populate('cart.product');
+    res.json({ success: true, data: user.cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

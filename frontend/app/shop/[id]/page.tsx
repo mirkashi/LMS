@@ -4,6 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useShop } from '@/context/ShopContext';
+import { HeartIcon } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 interface Product {
   _id: string;
@@ -30,6 +33,7 @@ export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { addToCart, addToWishlist, removeFromWishlist, isInWishlist } = useShop();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +70,28 @@ export default function ProductPage() {
       fetchProduct();
     }
   }, [id]);
+
+  const handleWishlist = () => {
+    if (!product) return;
+    if (isInWishlist(product._id)) {
+      removeFromWishlist(product._id);
+    } else {
+      addToWishlist(product);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart(product, quantity);
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (product) {
+      addToCart(product, quantity);
+      router.push('/checkout');
+    }
+  };
 
   if (loading) {
     return (
@@ -119,8 +145,15 @@ export default function ProductPage() {
                   </div>
                 )}
                 <div className="absolute top-4 right-4">
-                  <button className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 hover:text-red-500 transition">
-                    ❤️
+                  <button 
+                    onClick={handleWishlist}
+                    className="p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition"
+                  >
+                    {isInWishlist(product._id) ? (
+                      <HeartIconSolid className="w-6 h-6 text-red-500" />
+                    ) : (
+                      <HeartIcon className="w-6 h-6 text-gray-400 hover:text-red-500" />
+                    )}
                   </button>
                 </div>
               </motion.div>
@@ -190,10 +223,16 @@ export default function ProductPage() {
                       +
                     </button>
                   </div>
-                  <button className="flex-1 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">
+                  <button 
+                    onClick={handleAddToCart}
+                    className="flex-1 px-8 py-3 bg-white border-2 border-gray-900 text-gray-900 font-bold rounded-xl hover:bg-gray-50 transition"
+                  >
                     Add to Cart
                   </button>
-                  <button className="flex-1 px-8 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition shadow-lg">
+                  <button 
+                    onClick={handleBuyNow}
+                    className="flex-1 px-8 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition shadow-lg"
+                  >
                     Buy Now
                   </button>
                 </div>

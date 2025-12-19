@@ -43,6 +43,21 @@ const userSchema = new mongoose.Schema(
         ref: 'Course',
       },
     ],
+    wishlist: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product'
+    }],
+    cart: [{
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+      },
+      quantity: {
+        type: Number,
+        default: 1,
+        min: 1
+      }
+    }],
     createdAt: {
       type: Date,
       default: Date.now,
