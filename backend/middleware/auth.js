@@ -2,7 +2,24 @@ const { verifyToken } = require('../utils/jwt');
 
 const authMiddleware = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: 'No authorization header provided',
+      });
+    }
+
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authorization header format. Use: Bearer <token>',
+      });
+    }
+
+    const token = parts[1];
 
     if (!token) {
       return res.status(401).json({
@@ -16,17 +33,24 @@ const authMiddleware = (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token',
+        message: 'Invalid or expired token',
       });
     }
 
-    req.user = decoded;
+    // Ensure both id and userId are available
+    req.user = {
+      id: decoded.id || decoded.userId,
+      userId: decoded.userId || decoded.id,
+      role: decoded.role
+    };
+    
     next();
   } catch (error) {
+    console.error('Auth middleware error:', error);
     return res.status(401).json({
       success: false,
       message: 'Authentication error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

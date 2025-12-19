@@ -120,6 +120,20 @@ export default function Checkout() {
 
     try {
       const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setOrderError('Authentication token not found. Please log in again.');
+        setIsSubmitting(false);
+        router.push('/login?redirect=/checkout');
+        return;
+      }
+
+      if (!cart || cart.length === 0) {
+        setOrderError('Your cart is empty.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const orderData = {
         items: cart.map(item => ({
           product: item.product._id,
@@ -128,7 +142,7 @@ export default function Checkout() {
         })),
         shippingAddress: {
           street: data.address,
-          street2: data.address2,
+          street2: data.address2 || '',
           city: data.city,
           state: data.state,
           zip: data.zip,
@@ -143,23 +157,48 @@ export default function Checkout() {
         totalAmount: cartTotal + shippingFee
       };
 
+      console.log('Submitting order:', orderData);
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/orders`,
         orderData,
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
+      console.log('Order response:', response.data);
+
       if (response.data.success) {
         clearCart();
         router.push(`/checkout/success?orderId=${response.data.data.orderId}`);
+      } else {
+        setOrderError(response.data.message || 'Failed to create order. Please try again.');
       }
     } catch (error: any) {
       console.error('Order creation failed:', error);
-      setOrderError(error.response?.data?.message || 'Something went wrong. Please try again.');
+      
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        setTimeout(() => router.push('/login?redirect=/checkout'), 2000);
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid order information. Please check your details and try again.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'One or more products are no longer available.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      setOrderError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
