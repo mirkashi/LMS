@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useShop } from '@/context/ShopContext';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
