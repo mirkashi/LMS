@@ -2,22 +2,28 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import AdminNav from '@/components/AdminNav';
+import AdminLayout from '@/components/AdminLayout';
 
 export default function CoursesPage() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const checkAuthAndFetchCourses = async () => {
       const token = localStorage.getItem('adminToken');
-      if (!token) {
+      const userData = localStorage.getItem('adminUser');
+
+      if (!token || !userData) {
         router.push('/login');
         return;
       }
 
       try {
+        const user = JSON.parse(userData);
+        setUser(user);
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/courses`,
           {
@@ -38,45 +44,54 @@ export default function CoursesPage() {
       }
     };
 
-    fetchCourses();
+    checkAuthAndFetchCourses();
   }, [router]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading courses...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <AdminNav />
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Manage Courses</h1>
-          </div>
+    <AdminLayout user={user}>
+      <div className="p-6 lg:p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Courses</h1>
+          <p className="text-gray-600">View and manage all courses in your LMS platform.</p>
+        </div>
 
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100 border-b">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Price</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Title</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Category</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Price</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {courses.map((course) => (
-                  <tr key={course._id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4">{course.title}</td>
-                    <td className="px-6 py-4">{course.category}</td>
-                    <td className="px-6 py-4">${course.price}</td>
+                  <tr key={course._id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="px-6 py-4 font-medium text-gray-900">{course.title}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        course.isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 capitalize">
+                        {course.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-green-600">${course.price}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        course.isPublished
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
                       }`}>
                         {course.isPublished ? 'Published' : 'Draft'}
                       </span>
@@ -87,7 +102,13 @@ export default function CoursesPage() {
             </table>
           </div>
         </div>
-      </main>
-    </>
+
+        {courses.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No courses found.</p>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
   );
 }
