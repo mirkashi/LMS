@@ -1,52 +1,64 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function Footer() {
   return (
-    <footer className="bg-dark text-white mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 className="text-2xl font-bold mb-4 bg-gradient-accent bg-clip-text text-transparent">
+    <footer className="bg-gray-900 text-white mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="space-y-4">
+            <h3 className="text-2xl font-serif font-bold tracking-tight text-white">
               9tangle
             </h3>
-            <p className="text-gray-400">
-              Professional LMS platform for eBay consultants to sell courses in PDF and video formats.
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Curating premium digital resources for the modern entrepreneur. Elevate your business with our exclusive collection.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><a href="/" className="hover:text-white transition">Home</a></li>
-              <li><a href="/courses" className="hover:text-white transition">Courses</a></li>
-              <li><a href="/shop" className="hover:text-white transition">Shop</a></li>
-              <li><a href="/about" className="hover:text-white transition">About</a></li>
+            <h4 className="text-sm font-bold uppercase tracking-wider mb-6 text-gray-200">Explore</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+              <li><Link href="/shop" className="hover:text-white transition-colors">The Collection</Link></li>
+              <li><Link href="/about" className="hover:text-white transition-colors">Our Story</Link></li>
+              <li><Link href="/courses" className="hover:text-white transition-colors">Courses</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Support</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><a href="/contact" className="hover:text-white transition">Contact Us</a></li>
-              <li><a href="#" className="hover:text-white transition">FAQ</a></li>
-              <li><a href="#" className="hover:text-white transition">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-white transition">Privacy Policy</a></li>
+            <h4 className="text-sm font-bold uppercase tracking-wider mb-6 text-gray-200">Support</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Newsletter</h4>
-            <p className="text-gray-400 mb-4">Subscribe to get updates on new courses.</p>
-            <input
-              type="email"
-              placeholder="Your email"
-              className="w-full px-4 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-500 focus:outline-none"
-            />
+            <h4 className="text-sm font-bold uppercase tracking-wider mb-6 text-gray-200">Stay Connected</h4>
+            <p className="text-gray-400 text-sm mb-4">Join our newsletter for exclusive offers and updates.</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="Email address"
+                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-gray-500 transition-colors"
+              />
+              <button className="bg-white text-gray-900 px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors">
+                Join
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 9tangle. All rights reserved.</p>
+        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+          <p>&copy; {new Date().getFullYear()} 9tangle. All rights reserved.</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-white transition-colors">Instagram</a>
+            <a href="#" className="hover:text-white transition-colors">Twitter</a>
+            <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
+          </div>
         </div>
       </div>
     </footer>
