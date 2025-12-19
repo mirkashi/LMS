@@ -353,6 +353,14 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
+    // Emit order update event
+    const io = req.app.get('io');
+    io.emit('order-update', {
+      orderId: order._id,
+      status: order.status,
+      paymentStatus: order.paymentStatus
+    });
+
     res.status(200).json({
       success: true,
       message: 'Order updated successfully',

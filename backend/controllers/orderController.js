@@ -110,3 +110,81 @@ exports.getMyOrders = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+// @desc    Bulk update order status
+// @route   POST /api/admin/orders/bulk-update
+// @access  Private/Admin
+exports.bulkUpdateOrderStatus = async (req, res) => {
+  try {
+    const { orderIds, status } = req.body;
+
+    // Validate required fields
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order IDs array is required and must not be empty'
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+
+    // Validate status enum
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    // Find orders that exist
+    const existingOrders = await Order.find({ _id: { $in: orderIds } });
+    const existingOrderIds = existingOrders.map(order => order._id.toString());
+
+    // Identify invalid order IDs
+    const invalidOrderIds = orderIds.filter(id => !existingOrderIds.includes(id));
+
+    if (invalidOrderIds.length > 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Some orders not found: ${invalidOrderIds.join(', ')}`
+      });
+    }
+
+    // Bulk update orders
+    const result = await Order.updateMany(
+      { _id: { $in: orderIds } },
+      { $set: { status: status } }
+    );
+
+    // Emit order update events for each updated order
+    const io = req.app.get('io');
+    orderIds.forEach(orderId => {
+      io.emit('order-update', {
+        orderId: orderId,
+        status: status
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated ${result.modifiedCount} orders`,
+      data: {
+        updatedCount: result.modifiedCount,
+        failedCount: orderIds.length - result.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Bulk update error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error during bulk update',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

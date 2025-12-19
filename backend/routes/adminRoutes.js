@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const orderController = require('../controllers/orderController');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const uploadMiddleware = require('../middleware/upload');
 
@@ -75,6 +76,13 @@ router.put(
   authMiddleware,
   adminMiddleware,
   adminController.updateOrderStatus
+);
+
+router.post(
+  '/orders/bulk-update',
+  authMiddleware,
+  adminMiddleware,
+  orderController.bulkUpdateOrderStatus
 );
 
 // Product management

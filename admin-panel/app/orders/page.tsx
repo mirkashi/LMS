@@ -1,10 +1,59 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 import AdminLayout from "@/components/AdminLayout";
 
-type Order = any;
+interface ShippingAddress {
+  street: string;
+  street2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+interface OrderItem {
+  product?: {
+    _id: string;
+    name: string;
+  };
+  course?: {
+    _id: string;
+    title: string;
+  };
+  quantity: number;
+  price: number;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Order {
+  _id: string;
+  orderId: string;
+  user?: User;
+  items: OrderItem[];
+  totalAmount: number;
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  paymentMethod?: string;
+  paymentMethodLabel?: string;
+  transactionId?: string;
+  shippingMethod?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  shippingAddress?: ShippingAddress;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -20,9 +69,17 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filtered, setFiltered] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [selected, setSelected] = useState<Order | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [updating, setUpdating] = useState(false);
+  const [confirmBulkUpdate, setConfirmBulkUpdate] = useState<{ status: string; count: number } | null>(null);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'totalAmount' | 'status' | 'customerName'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,9 +109,13 @@ export default function OrdersPage() {
           const data = await response.json();
           setOrders(data.data || []);
           setFiltered(data.data || []);
+          setError(null);
+        } else {
+          setError("Failed to load orders. Please try again.");
         }
       } catch (error) {
         console.error("Failed to fetch orders:", error);
+        setError("Network error. Please check your connection.");
       } finally {
         setLoading(false);
       }
@@ -63,24 +124,97 @@ export default function OrdersPage() {
     checkAuthAndFetchOrders();
   }, [router]);
 
-  // Filter
+  // WebSocket connection for real-time updates
   useEffect(() => {
-    if (!query) {
-      setFiltered(orders);
-      return;
-    }
-    const q = query.toLowerCase();
-    setFiltered(
-      orders.filter((o: Order) => {
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+
+    socket.on('order-update', (data: { orderId: string; status: string }) => {
+      console.log('Real-time order update:', data);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === data.orderId ? { ...order, status: data.status as Order['status'] } : order
+        )
+      );
+      setFiltered((prev) =>
+        prev.map((order) =>
+          order._id === data.orderId ? { ...order, status: data.status as Order['status'] } : order
+        )
+      );
+      if (selected && selected._id === data.orderId) {
+        setSelected({ ...selected, status: data.status as Order['status'] });
+      }
+    });
+
+    return () => {
+      socket.close();
+    };
+  }, [selected]);
+
+  // Filter and Sort
+  useEffect(() => {
+    let filteredOrders = orders;
+
+    // Filter by query
+    if (query) {
+      const q = query.toLowerCase();
+      filteredOrders = filteredOrders.filter((o: Order) => {
         const id = (o.orderId || o._id)?.toString().toLowerCase();
         const name = (o.customerName || o.user?.name || "").toLowerCase();
         const email = (o.customerEmail || o.user?.email || "").toLowerCase();
         return (
           id?.includes(q) || name.includes(q) || email.includes(q)
         );
-      })
-    );
-  }, [query, orders]);
+      });
+    }
+
+    // Filter by status
+    if (statusFilter) {
+      filteredOrders = filteredOrders.filter((o: Order) => o.status === statusFilter);
+    }
+
+    // Filter by date range
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) >= fromDate);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999); // End of day
+      filteredOrders = filteredOrders.filter((o: Order) => new Date(o.createdAt) <= toDate);
+    }
+
+    // Sort
+    filteredOrders = [...filteredOrders].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortBy) {
+        case 'createdAt':
+          aVal = new Date(a.createdAt).getTime();
+          bVal = new Date(b.createdAt).getTime();
+          break;
+        case 'totalAmount':
+          aVal = a.totalAmount;
+          bVal = b.totalAmount;
+          break;
+        case 'status':
+          aVal = a.status;
+          bVal = b.status;
+          break;
+        case 'customerName':
+          aVal = (a.customerName || a.user?.name || "").toLowerCase();
+          bVal = (b.customerName || b.user?.name || "").toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      } else {
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      }
+    });
+
+    setFiltered(filteredOrders);
+  }, [query, statusFilter, dateFrom, dateTo, orders, sortBy, sortOrder]);
 
   const totalRevenue = useMemo(
     () => filtered.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
@@ -121,9 +255,13 @@ export default function OrdersPage() {
         setFiltered((prev) => prev.map((o) => (o._id === data.data._id ? data.data : o)));
         // Optimistically reflect immediately
         if (selected && selected._id === data.data._id) setSelected(data.data);
+        setError(null);
+      } else {
+        setError("Failed to update order status. Please try again.");
       }
     } catch (e) {
       console.error("Status update failed", e);
+      setError("Network error during update.");
     } finally {
       setUpdating(false);
     }
@@ -133,6 +271,89 @@ export default function OrdersPage() {
     if (!printRef.current) return;
     // Open print dialog with dedicated stylesheet
     window.print();
+  };
+
+  const handleSort = (column: typeof sortBy) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(filtered.map(o => o._id));
+    } else {
+      setSelectedOrders([]);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(prev => [...prev, orderId]);
+    } else {
+      setSelectedOrders(prev => prev.filter(id => id !== orderId));
+    }
+  };
+
+  const handleBulkUpdateStatus = (status: string) => {
+    if (selectedOrders.length === 0) return;
+    setConfirmBulkUpdate({ status, count: selectedOrders.length });
+  };
+
+  const confirmBulkUpdateStatus = async () => {
+    if (!confirmBulkUpdate) return;
+    const { status } = confirmBulkUpdate;
+    try {
+      setUpdating(true);
+      setConfirmBulkUpdate(null);
+      const token = localStorage.getItem("adminToken");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/orders/bulk-update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderIds: selectedOrders, status }),
+      });
+      if (!response.ok) {
+        throw new Error("Bulk update failed");
+      }
+      // Update local state
+      setOrders(prev => prev.map(o => selectedOrders.includes(o._id) ? { ...o, status: status as Order['status'] } : o));
+      setFiltered(prev => prev.map(o => selectedOrders.includes(o._id) ? { ...o, status: status as Order['status'] } : o));
+      setSelectedOrders([]);
+      setError(null);
+    } catch (e) {
+      console.error("Bulk update failed", e);
+      setError("Failed to update selected orders. Please try again.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleExport = () => {
+    const csv = [
+      ['Order ID', 'Customer Name', 'Email', 'Items', 'Amount', 'Status', 'Date'],
+      ...filtered.map(o => [
+        o.orderId || o._id,
+        o.customerName || o.user?.name || '',
+        o.customerEmail || o.user?.email || '',
+        o.items.map(i => `${i.product?.name || i.course?.title || 'Item'} x${i.quantity}`).join('; '),
+        o.totalAmount,
+        o.status,
+        new Date(o.createdAt).toLocaleDateString()
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'orders.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -149,6 +370,44 @@ export default function OrdersPage() {
   return (
     <AdminLayout user={user}>
       <div className="p-6 lg:p-8">
+        {/* Breadcrumbs */}
+        <nav className="mb-6" aria-label="Breadcrumb">
+          <ol className="flex items-center space-x-2 text-sm text-gray-500">
+            <li>
+              <Link href="/dashboard" className="hover:text-gray-700 transition-colors">
+                Dashboard
+              </Link>
+            </li>
+            <li>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </li>
+            <li>
+              <span className="text-gray-900 font-medium">Orders</span>
+            </li>
+          </ol>
+        </nav>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-red-800 font-medium">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800 transition-colors"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
@@ -165,46 +424,175 @@ export default function OrdersPage() {
 
         {/* Toolbar */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <label className="relative flex-1" aria-label="Search orders">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by ID, customer name, or email…"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
-              />
-              <span className="absolute right-3 top-2.5 text-gray-400 text-sm">⌕</span>
-            </label>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by ID, customer name, or email…"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                  aria-label="Search orders"
+                />
+                <span className="absolute right-3 top-2.5 text-gray-400 text-sm" aria-hidden="true">⌕</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                  aria-label="Filter by status"
+                >
+                  <option value="">All Statuses</option>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                  aria-label="Filter from date"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                  aria-label="Filter to date"
+                />
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Bulk Actions */}
+        {selectedOrders.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+            <span className="text-sm text-blue-800 font-medium">
+              {selectedOrders.length} order{selectedOrders.length > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex gap-2">
+              <select
+                onChange={(e) => handleBulkUpdateStatus(e.target.value)}
+                disabled={updating}
+                className="text-sm border border-blue-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Bulk update status"
+              >
+                <option value="">Update Status</option>
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleExport}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                aria-label="Export selected orders"
+              >
+                Export
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Orders Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" role="table" aria-label="Orders table">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Order</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Contact & Shipping</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrders.length === filtered.length && filtered.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      aria-label="Select all orders"
+                      className="rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">
+                    <button
+                      onClick={() => handleSort('createdAt')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      aria-label={`Sort by date ${sortBy === 'createdAt' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : ''}`}
+                    >
+                      ID / Date
+                      {sortBy === 'createdAt' && (
+                        <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">
+                    <button
+                      onClick={() => handleSort('customerName')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      aria-label={`Sort by customer ${sortBy === 'customerName' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : ''}`}
+                    >
+                      Customer
+                      {sortBy === 'customerName' && (
+                        <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Items</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">
+                    <button
+                      onClick={() => handleSort('totalAmount')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      aria-label={`Sort by amount ${sortBy === 'totalAmount' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : ''}`}
+                    >
+                      Amount
+                      {sortBy === 'totalAmount' && (
+                        <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">
+                    <button
+                      onClick={() => handleSort('status')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      aria-label={`Sort by status ${sortBy === 'status' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : ''}`}
+                    >
+                      Status
+                      {sortBy === 'status' && (
+                        <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filtered.map((order) => (
-                  <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 align-top">
+                  <tr key={order._id} className="hover:bg-gray-50 transition-colors" role="row">
+                    <td className="px-6 py-4 align-top" role="cell">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.includes(order._id)}
+                        onChange={(e) => handleSelectOrder(order._id, e.target.checked)}
+                        aria-label={`Select order ${order.orderId || order._id}`}
+                        className="rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                      />
+                    </td>
+                    <td className="px-6 py-4 align-top" role="cell">
                       <div className="flex flex-col">
                         <span className="font-mono text-sm text-gray-600">{order.orderId || order._id?.slice(0, 8)}</span>
-                        <span className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString()}</span>
-                        <span className="text-xs text-gray-500">Payment: {order.paymentMethodLabel || order.paymentMethod || "—"}</span>
+                        <span className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 align-top">
+                    <td className="px-6 py-4 align-top" role="cell">
                       <div className="flex items-start gap-3">
                         <div className="w-9 h-9 bg-gray-900 text-white rounded-full flex items-center justify-center" aria-hidden="true">
                           <span className="text-sm font-bold">
@@ -214,39 +602,27 @@ export default function OrdersPage() {
                         <div>
                           <p className="font-semibold text-gray-900">{order.customerName || order.user?.name || "N/A"}</p>
                           <p className="text-xs text-gray-500">{order.user?.email || order.customerEmail || "N/A"}</p>
-                          {order.customerPhone && (
-                            <p className="text-xs text-gray-500">{order.customerPhone}</p>
-                          )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="text-sm text-gray-700">
-                        {order.shippingAddress ? (
-                          <p className="max-w-xs">{order.shippingAddress.street}{order.shippingAddress.street2 ? ", " + order.shippingAddress.street2 : ""}, {order.shippingAddress.city}, {order.shippingAddress.state}, {order.shippingAddress.country} {order.shippingAddress.zip}</p>
-                        ) : (
-                          <p>—</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
+                    <td className="px-6 py-4 align-top" role="cell">
                       <ul className="text-sm text-gray-900 space-y-1">
-                        {(order.items || []).map((item: any, idx: number) => (
+                        {(order.items || []).map((item, idx) => (
                           <li key={idx} className="flex justify-between gap-3">
-                            <span className="truncate max-w-[220px]">{item.product?.name || item.course?.title || "Item"}</span>
+                            <span className="truncate max-w-[200px]">{item.product?.name || item.course?.title || "Item"}</span>
                             <span className="text-xs text-gray-500">x{item.quantity}</span>
                           </li>
                         ))}
                       </ul>
                     </td>
-                    <td className="px-6 py-4 align-top">
+                    <td className="px-6 py-4 align-top" role="cell">
                       <span className="font-semibold text-gray-900">PKR {order.totalAmount?.toLocaleString() || 0}</span>
                     </td>
-                    <td className="px-6 py-4 align-top">
+                    <td className="px-6 py-4 align-top" role="cell">
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusClass(order.status)}`}>{order.status}</span>
                         <select
-                          aria-label="Update order status"
+                          aria-label={`Update status for order ${order.orderId || order._id}`}
                           className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
                           defaultValue={order.status}
                           onChange={(e) => handleUpdateStatus(order._id, e.target.value)}
@@ -258,22 +634,22 @@ export default function OrdersPage() {
                         </select>
                       </div>
                     </td>
-                    <td className="px-6 py-4 align-top">
+                    <td className="px-6 py-4 align-top" role="cell">
                       <div className="flex flex-wrap gap-2">
                         <button
-                          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
                           onClick={() => setSelected(order)}
-                          aria-label="View order details"
+                          aria-label={`View details for order ${order.orderId || order._id}`}
                         >
                           Details
                         </button>
                         <button
-                          className="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800"
+                          className="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800 transition-colors"
                           onClick={() => {
                             setSelected(order);
                             setTimeout(handlePrintInvoice, 100);
                           }}
-                          aria-label="Generate invoice"
+                          aria-label={`Generate invoice for order ${order.orderId || order._id}`}
                         >
                           Invoice
                         </button>
@@ -377,6 +753,34 @@ export default function OrdersPage() {
                     Close
                   </button>
                 </section>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Dialog */}
+        {confirmBulkUpdate && (
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30" onClick={() => setConfirmBulkUpdate(null)}></div>
+            <div className="relative bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Bulk Update</h3>
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to update the status of {confirmBulkUpdate.count} order{confirmBulkUpdate.count > 1 ? 's' : ''} to {`"${STATUS_OPTIONS.find(opt => opt.value === confirmBulkUpdate.status)?.label}"`}?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmBulkUpdate(null)}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBulkUpdateStatus}
+                  disabled={updating}
+                  className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {updating ? 'Updating...' : 'Confirm'}
+                </button>
               </div>
             </div>
           </div>

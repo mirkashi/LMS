@@ -11,15 +11,15 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
 
-      if (!token || !user) {
-        router.push('/login');
-        return;
-      }
+    if (!token || !user) {
+      router.push('/login');
+      return;
+    }
 
+    const fetchData = async () => {
       try {
         const [coursesRes, ordersRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/enrolled/list`, {
@@ -46,39 +46,35 @@ export default function StudentDashboard() {
       }
     };
 
-      try {
-        const fetchData = async () => {
-          const [coursesRes, ordersRes] = await Promise.all([
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/enrolled/list`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/myorders`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-          ]);
+    // Initial fetch
+    fetchData();
 
-          if (coursesRes.ok) {
-            const data = await coursesRes.json();
-            setEnrolledCourses(data.data || []);
-          }
-          
-          if (ordersRes.ok) {
-            const data = await ordersRes.json();
-            setOrders(data.data || []);
-          }
-        };
+    // Poll for real-time status updates every 10s
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [router]);
 
-        // Initial fetch
-        await fetchData();
-        setLoading(false);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
-        // Poll for real-time status updates every 10s
-        const interval = setInterval(fetchData, 10000);
-        return () => clearInterval(interval);
-            <Link href="/courses" className="text-gray-900 font-medium hover:underline">
-              Browse all courses
-            </Link>
-        // handled above
+  return (
+    <main className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-serif font-bold text-gray-900">My Dashboard</h1>
+          <Link href="/courses" className="text-gray-900 font-medium hover:underline">
+            Browse all courses
+          </Link>
+        </div>
+
+        {/* Enrolled Courses */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">My Courses</h2>
 
           {enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
