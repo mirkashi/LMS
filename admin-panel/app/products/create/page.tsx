@@ -36,7 +36,27 @@ export default function CreateProductPage() {
 
     const user = JSON.parse(userData);
     setUser(user);
-  }, [router]);
+
+    // Development mode: Monitor for unexpected API calls
+    if (process.env.NODE_ENV === 'development') {
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0]?.toString() || '';
+        // Log API calls during development (except final submit which happens in handleSubmit)
+        if (url.includes('/admin/products') && !loading) {
+          console.warn('⚠️ Development Warning: API call detected while not in submission state');
+          console.warn('URL:', url);
+          console.warn('Current step:', currentStep);
+          console.warn('Loading state:', loading);
+        }
+        return originalFetch.apply(this, args);
+      };
+      
+      return () => {
+        window.fetch = originalFetch;
+      };
+    }
+  }, [router, currentStep, loading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -49,7 +69,9 @@ export default function CreateProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Store file in local state only - NO UPLOAD occurs here
       setImage(file);
+      // Create local preview using FileReader API - NO server upload
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -77,7 +99,9 @@ export default function CreateProductPage() {
     if (files?.[0]) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
+        // Store file in local state only - NO UPLOAD occurs here
         setImage(file);
+        // Create local preview using FileReader API - NO server upload
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target?.result as string);
@@ -123,13 +147,14 @@ export default function CreateProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Strict validation: Only submit on final step
+    // SAFETY CHECK #1: Only submit on final step
+    // This ensures no premature data persistence
     if (currentStep !== totalSteps) {
       console.warn('Form submission prevented: Not on final step');
       return;
     }
     
-    // Validate all steps before submission
+    // SAFETY CHECK #2: Validate all steps before submission
     for (let step = 1; step <= totalSteps; step++) {
       if (!validateStep(step)) {
         console.error(`Validation failed for step ${step}`);
@@ -139,7 +164,7 @@ export default function CreateProductPage() {
       }
     }
     
-    // Prevent duplicate submissions
+    // SAFETY CHECK #3: Prevent duplicate submissions
     if (loading) {
       console.warn('Form submission prevented: Already submitting');
       return;
@@ -148,6 +173,7 @@ export default function CreateProductPage() {
     setError('');
     setLoading(true);
     console.log('Starting product creation...');
+    console.log('📤 This is the ONLY point where files are uploaded to the server');
 
     const token = localStorage.getItem('adminToken');
     if (!token) {
@@ -156,6 +182,8 @@ export default function CreateProductPage() {
     }
 
     try {
+      // Build FormData with all form fields AND files
+      // Image has been stored in local state until now
       const formDataObj = new FormData();
       formDataObj.append('name', formData.name);
       formDataObj.append('description', formData.description);
@@ -163,10 +191,12 @@ export default function CreateProductPage() {
       formDataObj.append('price', formData.price);
       formDataObj.append('stock', formData.stock || '0');
 
+      // Add image file if selected
       if (image) {
         formDataObj.append('image', image);
       }
 
+      // SINGLE API CALL: Create product with all data including file upload
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/products`,
         {

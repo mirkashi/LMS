@@ -39,7 +39,27 @@ export default function CreateCoursePage() {
 
     const user = JSON.parse(userData);
     setUser(user);
-  }, [router]);
+
+    // Development mode: Monitor for unexpected API calls
+    if (process.env.NODE_ENV === 'development') {
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0]?.toString() || '';
+        // Log API calls during development (except final submit which happens in handleSubmit)
+        if (url.includes('/admin/courses') && !loading) {
+          console.warn('⚠️ Development Warning: API call detected while not in submission state');
+          console.warn('URL:', url);
+          console.warn('Current step:', currentStep);
+          console.warn('Loading state:', loading);
+        }
+        return originalFetch.apply(this, args);
+      };
+      
+      return () => {
+        window.fetch = originalFetch;
+      };
+    }
+  }, [router, currentStep, loading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -52,7 +72,9 @@ export default function CreateCoursePage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Store file in local state only - NO UPLOAD occurs here
       setImage(file);
+      // Create local preview using FileReader API - NO server upload
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -63,6 +85,7 @@ export default function CreateCoursePage() {
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Store files in local state only - NO UPLOAD occurs here
     setPdfFiles(prev => [...prev, ...files]);
   };
 
@@ -89,7 +112,9 @@ export default function CreateCoursePage() {
     if (files?.[0]) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
+        // Store file in local state only - NO UPLOAD occurs here
         setImage(file);
+        // Create local preview using FileReader API - NO server upload
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target?.result as string);
@@ -106,6 +131,7 @@ export default function CreateCoursePage() {
 
     const files = Array.from(e.dataTransfer.files);
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    // Store files in local state only - NO UPLOAD occurs here
     setPdfFiles(prev => [...prev, ...pdfFiles]);
   };
 
@@ -147,13 +173,14 @@ export default function CreateCoursePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Strict validation: Only submit on final step
+    // SAFETY CHECK #1: Only submit on final step
+    // This ensures no premature data persistence
     if (currentStep !== totalSteps) {
       console.warn('Form submission prevented: Not on final step');
       return;
     }
     
-    // Validate all steps before submission
+    // SAFETY CHECK #2: Validate all steps before submission
     for (let step = 1; step <= totalSteps; step++) {
       if (!validateStep(step)) {
         console.error(`Validation failed for step ${step}`);
@@ -163,7 +190,7 @@ export default function CreateCoursePage() {
       }
     }
     
-    // Prevent duplicate submissions
+    // SAFETY CHECK #3: Prevent duplicate submissions
     if (loading) {
       console.warn('Form submission prevented: Already submitting');
       return;
@@ -172,6 +199,7 @@ export default function CreateCoursePage() {
     setError('');
     setLoading(true);
     console.log('Starting course creation...');
+    console.log('📤 This is the ONLY point where files are uploaded to the server');
 
     const token = localStorage.getItem('adminToken');
     if (!token) {
@@ -180,6 +208,8 @@ export default function CreateCoursePage() {
     }
 
     try {
+      // Build FormData with all form fields AND files
+      // Files have been stored in local state (image, pdfFiles) until now
       const formDataObj = new FormData();
       formDataObj.append('title', formData.title);
       formDataObj.append('description', formData.description);
@@ -189,15 +219,17 @@ export default function CreateCoursePage() {
       formDataObj.append('duration', formData.duration);
       formDataObj.append('syllabus', formData.syllabus);
 
+      // Add image file if selected
       if (image) {
         formDataObj.append('image', image);
       }
 
-      // Add PDF files
+      // Add PDF files if any
       pdfFiles.forEach((file, index) => {
         formDataObj.append(`pdfFiles`, file);
       });
 
+      // SINGLE API CALL: Create course with all data including file uploads
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
         {
