@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // @access  Private
 exports.createOrder = async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, totalAmount } = req.body;
+    const { items, shippingAddress, paymentMethod, totalAmount, customerName, customerEmail, customerPhone, shippingMethod } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items' });
@@ -30,6 +30,11 @@ exports.createOrder = async (req, res) => {
       totalAmount,
       shippingAddress,
       paymentMethod,
+      paymentMethodLabel: paymentMethod,
+      shippingMethod,
+      customerName,
+      customerEmail,
+      customerPhone,
       paymentStatus: 'pending' // In a real app, you'd handle payment gateway here
     });
 

@@ -134,7 +134,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Revenue</p>
-                    <p className="font-bold text-gray-900">+$12,450</p>
+                    <p className="font-bold text-gray-900">+PKR 12,450</p>
                   </div>
                 </div>
               </motion.div>
@@ -224,7 +224,7 @@ export default function Home() {
                     </div>
                   )}
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-blue-600 shadow-sm">
-                    ${course.price}
+                    PKR {course.price}
                   </div>
                 </div>
                 <div className="p-6">
@@ -323,33 +323,50 @@ export default function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-24 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-white p-12 rounded-3xl shadow-xl border border-gray-100">
-            <span className="inline-block p-3 bg-blue-100 text-blue-600 rounded-full mb-6 text-2xl">
+      <section className="relative py-20 overflow-hidden">
+        {/* Background overlay for future custom image - can be replaced later */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 opacity-95" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#ffffff15,transparent_50%)]" />
+        
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="bg-white/10 backdrop-blur-lg p-10 rounded-2xl shadow-2xl border border-white/20"
+          >
+            <motion.span 
+              className="inline-block p-3 bg-white/20 text-white rounded-full mb-6 text-3xl"
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
               📩
-            </span>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Join Our Newsletter</h2>
-            <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+            </motion.span>
+            <h2 className="text-3xl font-bold text-white mb-4">Join Our Newsletter</h2>
+            <p className="text-white/90 mb-8 max-w-lg mx-auto">
               Get the latest eBay tips, market trends, and exclusive offers delivered straight to your inbox.
             </p>
             <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
+              <motion.input
+                whileFocus={{ scale: 1.02 }}
                 type="email"
                 placeholder="Enter your email address"
-                className="flex-1 px-6 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-6 py-4 bg-white/90 backdrop-blur border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-gray-900 placeholder-gray-500"
               />
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 type="button"
-                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20"
+                className="px-8 py-4 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition shadow-lg"
               >
                 Subscribe
-              </button>
+              </motion.button>
             </form>
-            <p className="text-xs text-gray-400 mt-4">
+            <p className="text-xs text-white/70 mt-4">
               We respect your privacy. Unsubscribe at any time.
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>

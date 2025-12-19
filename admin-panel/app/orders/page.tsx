@@ -73,8 +73,10 @@ export default function OrdersPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Order ID</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customer</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Course/Product</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Contact</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Items</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Amount</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Payment</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
                 </tr>
@@ -83,23 +85,52 @@ export default function OrdersPage() {
                 {orders.map((order) => (
                   <tr key={order._id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="px-6 py-4">
-                      <span className="font-mono text-sm text-gray-600">{order._id.slice(0, 8)}...</span>
+                      <span className="font-mono text-sm text-gray-600">{order.orderId || order._id?.slice(0, 8)}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                           <span className="text-sm font-medium text-blue-600">
-                            {(order.userId?.name || 'U').charAt(0).toUpperCase()}
+                            {(order.customerName || order.user?.name || 'U').charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className="font-medium text-gray-900">{order.userId?.name || 'N/A'}</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{order.customerName || order.user?.name || 'N/A'}</span>
+                          <span className="text-xs text-gray-500">{order.user?.email || order.customerEmail || 'N/A'}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-gray-900">{order.courseId?.title || order.productId?.name || 'N/A'}</span>
+                      <div className="text-sm text-gray-700">
+                        <p>{order.customerPhone || 'No phone'}</p>
+                        {order.shippingAddress && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.state}, {order.shippingAddress.country} {order.shippingAddress.zip}
+                          </p>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-semibold text-green-600">${order.amount}</span>
+                      <div className="text-sm text-gray-900">
+                        {(order.items || []).slice(0, 2).map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between">
+                            <span>{item.product?.name || item.course?.title || 'Item'}</span>
+                            <span className="text-xs text-gray-500">x{item.quantity}</span>
+                          </div>
+                        ))}
+                        {order.items?.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">+ {order.items.length - 2} more</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-semibold text-green-600">PKR {order.totalAmount?.toLocaleString() || 0}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold capitalize">{order.paymentMethodLabel || order.paymentMethod || '—'}</span>
+                        {order.shippingMethod && <span className="text-xs text-gray-500">Ship: {order.shippingMethod}</span>}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
@@ -112,7 +143,7 @@ export default function OrdersPage() {
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                   </tr>

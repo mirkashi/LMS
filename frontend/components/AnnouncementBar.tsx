@@ -89,7 +89,7 @@ export default function AnnouncementBar() {
           animate={{ height: 'auto', opacity: 1, y: 0 }}
           exit={{ height: 0, opacity: 0, y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className={`relative z-50 overflow-hidden shadow-lg`}
+          className={`sticky top-0 z-[60] overflow-hidden shadow-xl backdrop-blur`}
         >
           <div className={`absolute inset-0 bg-gradient-to-r ${tone.gradient} opacity-95`} />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#ffffff24,transparent_35%)]" />

@@ -151,7 +151,7 @@ export default function StudentDashboard() {
                         </p>
                       </div>
                       <div className="flex items-center gap-6">
-                        <span className="text-lg font-bold text-gray-900">${order.totalAmount.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-gray-900">PKR {order.totalAmount.toFixed(2)}</span>
                         {/* Future: Add View Details button */}
                       </div>
                     </div>

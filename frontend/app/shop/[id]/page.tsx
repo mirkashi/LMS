@@ -178,7 +178,7 @@ export default function ProductPage() {
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 mb-6">
-                  ${product.price}
+                  PKR {product.price}
                 </div>
                 <p className="text-gray-600 leading-relaxed mb-8">
                   {product.description}
@@ -315,7 +315,7 @@ export default function ProductPage() {
                   <h3 className="font-bold text-gray-900 mb-1">Related Product {i}</h3>
                   <p className="text-sm text-gray-500 mb-3">Category</p>
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-blue-600">$49.00</span>
+                    <span className="font-bold text-blue-600">PKR 49.00</span>
                     <button className="text-sm text-gray-600 hover:text-blue-600">View</button>
                   </div>
                 </div>

@@ -262,7 +262,7 @@ export default function Shop() {
                           </h3>
                           <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">{product.category}</p>
                           <div className="flex items-center justify-center gap-2">
-                            <span className="text-sm font-bold text-gray-900">${product.price}</span>
+                            <span className="text-sm font-bold text-gray-900">PKR {product.price}</span>
                             {product.rating > 0 && (
                               <div className="flex items-center text-yellow-500 text-xs">
                                 <span>★</span>

@@ -11,6 +11,7 @@ type CheckoutFormInputs = {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   address: string;
   address2?: string;
   city: string;
@@ -134,7 +135,11 @@ export default function Checkout() {
           country: data.country
         },
         paymentMethod: data.paymentMethod,
+        paymentMethodLabel: data.paymentMethod,
         shippingMethod: data.shippingOption,
+        customerName: `${data.firstName} ${data.lastName}`.trim(),
+        customerEmail: data.email,
+        customerPhone: data.phone,
         totalAmount: cartTotal + shippingFee
       };
 
@@ -217,6 +222,18 @@ export default function Checkout() {
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-900 focus:border-gray-900 sm:text-sm py-2 px-3 border"
                       />
                       {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>}
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        {...register('phone', { required: 'Phone is required' })}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-900 focus:border-gray-900 sm:text-sm py-2 px-3 border"
+                        placeholder="03XX-XXXXXXX"
+                      />
+                      {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>}
                     </div>
                   </div>
                 </div>
@@ -334,7 +351,7 @@ export default function Checkout() {
                             <div className="flex-1">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-semibold text-gray-900">{option.label}</span>
-                                <span className="text-sm font-bold text-gray-900">${option.amount.toFixed(2)}</span>
+                                <span className="text-sm font-bold text-gray-900">PKR {option.amount.toFixed(2)}</span>
                               </div>
                               <p className="text-xs text-gray-500 mt-1">{option.description}</p>
                             </div>
@@ -424,7 +441,7 @@ export default function Checkout() {
                     type="button"
                     onClick={async () => {
                       const fieldsByStep: Record<number, (keyof CheckoutFormInputs)[]> = {
-                        1: ['email', 'firstName', 'lastName'],
+                        1: ['email', 'firstName', 'lastName', 'phone'],
                         2: ['address', 'city', 'state', 'zip', 'country', 'shippingOption'],
                         3: ['paymentMethod']
                       };
@@ -442,7 +459,7 @@ export default function Checkout() {
                     disabled={isSubmitting}
                     className="px-6 py-3 bg-gray-900 text-white rounded-md font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Processing...' : `Pay $${(cartTotal + shippingFee).toFixed(2)}`}
+                    {isSubmitting ? 'Processing...' : `Pay PKR ${(cartTotal + shippingFee).toFixed(2)}`}
                   </button>
                 )}
               </div>
@@ -472,7 +489,7 @@ export default function Checkout() {
                       <div>
                         <div className="flex justify-between text-base font-medium text-gray-900">
                           <h3>{item.product.name}</h3>
-                          <p className="ml-4">${(item.product.price * item.quantity).toFixed(2)}</p>
+                          <p className="ml-4">PKR {(item.product.price * item.quantity).toFixed(2)}</p>
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{item.product.category}</p>
                       </div>
@@ -487,15 +504,15 @@ export default function Checkout() {
               <div className="border-t border-gray-200 pt-6 mt-6">
                 <div className="flex justify-between text-base font-medium text-gray-900 mb-4">
                   <p>Subtotal</p>
-                  <p>${cartTotal.toFixed(2)}</p>
+                  <p>PKR {cartTotal.toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between text-base font-medium text-gray-900 mb-4">
                   <p>Shipping</p>
-                  <p>${shippingFee.toFixed(2)}</p>
+                  <p>PKR {shippingFee.toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-gray-200 pt-4">
                   <p>Total</p>
-                  <p>${(cartTotal + shippingFee).toFixed(2)}</p>
+                  <p>PKR {(cartTotal + shippingFee).toFixed(2)}</p>
                 </div>
               </div>
             </div>

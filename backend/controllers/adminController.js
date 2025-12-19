@@ -316,6 +316,7 @@ exports.getAllOrders = async (req, res) => {
     const orders = await Order.find()
       .populate('user', 'name email')
       .populate('items.course', 'title price')
+      .populate('items.product', 'name price')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
