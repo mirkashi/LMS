@@ -32,8 +32,24 @@ const userSchema = new mongoose.Schema(
     },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
+    emailVerificationCode: String, // Hashed 6-digit code
+    emailVerificationCodeExpires: Date,
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastEmailVerificationSentAt: Date,
+    newEmail: String,
+    newEmailVerificationToken: String,
+    newEmailVerificationExpires: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
+    passwordResetCode: String, // Hashed 6-digit code for password reset
+    passwordResetCodeExpires: Date,
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+    },
     phone: String,
     avatar: String,
     bio: String,
@@ -92,6 +108,48 @@ userSchema.methods.generateEmailVerificationToken = function () {
   this.emailVerificationToken = require('crypto').createHash('sha256').update(token).digest('hex');
   this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   return token;
+};
+
+// Method to generate 6-digit verification code
+userSchema.methods.generateVerificationCode = function () {
+  const crypto = require('crypto');
+  // Generate secure random 6-digit code
+  const code = crypto.randomInt(100000, 999999).toString();
+  // Hash the code before storing
+  this.emailVerificationCode = crypto.createHash('sha256').update(code).digest('hex');
+  this.emailVerificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.emailVerificationAttempts = 0; // Reset attempts
+  return code;
+};
+
+// Method to verify 6-digit code
+userSchema.methods.verifyCode = function (code) {
+  const crypto = require('crypto');
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+  return (
+    this.emailVerificationCode === hashedCode &&
+    this.emailVerificationCodeExpires > Date.now()
+  );
+};
+
+// Method to generate password reset code
+userSchema.methods.generatePasswordResetCode = function () {
+  const crypto = require('crypto');
+  const code = crypto.randomInt(100000, 999999).toString();
+  this.passwordResetCode = crypto.createHash('sha256').update(code).digest('hex');
+  this.passwordResetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.passwordResetAttempts = 0; // Reset attempts
+  return code;
+};
+
+// Method to verify password reset code
+userSchema.methods.verifyPasswordResetCode = function (code) {
+  const crypto = require('crypto');
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+  return (
+    this.passwordResetCode === hashedCode &&
+    this.passwordResetCodeExpires > Date.now()
+  );
 };
 
 // Method to verify email token

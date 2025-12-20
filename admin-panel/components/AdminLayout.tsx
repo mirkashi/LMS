@@ -12,7 +12,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
-  MegaphoneIcon
+  MegaphoneIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 interface AdminLayoutProps {
@@ -48,6 +49,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     { name: 'Products', href: '/products', icon: ShoppingBagIcon },
     { name: 'Orders', href: '/orders', icon: ClipboardDocumentListIcon },
     { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
+    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
 
   return (

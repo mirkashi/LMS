@@ -3,6 +3,9 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
+const { sendEmailChangeVerification, sendPasswordChangeNotification } = require('../utils/mailer');
+const crypto = require('crypto');
+
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {
@@ -146,6 +149,200 @@ exports.updateCourse = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update course',
+      error: error.message,
+    });
+  }
+};
+
+// Get Admin Profile
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId).select('-password -newEmailVerificationToken');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile',
+      error: error.message,
+    });
+  }
+};
+
+// Update Admin Profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { email, currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(userId).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    let message = 'Profile updated successfully';
+    let emailVerificationRequired = false;
+
+    // Handle Email Change Request
+    if (email && email !== user.email) {
+      // Rate limiting check (1 minute)
+      if (user.lastEmailVerificationSentAt && 
+          Date.now() - user.lastEmailVerificationSentAt.getTime() < 60000) {
+        return res.status(429).json({
+          success: false,
+          message: 'Please wait a minute before requesting another verification code',
+        });
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use',
+        });
+      }
+
+      // Generate 6-digit code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+      user.newEmail = email;
+      user.newEmailVerificationToken = hashedCode;
+      user.newEmailVerificationExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+      user.lastEmailVerificationSentAt = Date.now();
+
+      await sendEmailChangeVerification(email, verificationCode);
+      emailVerificationRequired = true;
+      message = 'Verification code sent to new email';
+    }
+
+    // Handle Password Change
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide current password to set a new password',
+        });
+      }
+
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid current password',
+        });
+      }
+
+      // Password strength validation
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(newPassword)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character',
+        });
+      }
+
+      user.password = newPassword;
+      await sendPasswordChangeNotification(user.email);
+      message = emailVerificationRequired ? message + ' and password updated' : 'Password updated successfully';
+    }
+
+    await user.save();
+
+    // Remove sensitive data
+    user.password = undefined;
+    user.newEmailVerificationToken = undefined;
+
+    res.status(200).json({
+      success: true,
+      message,
+      emailVerificationRequired,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message,
+    });
+  }
+};
+
+// Verify Email Change
+exports.verifyEmailChange = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code is required',
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user || !user.newEmailVerificationToken || !user.newEmailVerificationExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending email change found',
+      });
+    }
+
+    if (user.newEmailVerificationExpires < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired',
+      });
+    }
+
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+    if (hashedCode !== user.newEmailVerificationToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code',
+      });
+    }
+
+    // Update email
+    user.email = user.newEmail;
+    user.newEmail = undefined;
+    user.newEmailVerificationToken = undefined;
+    user.newEmailVerificationExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Email updated successfully',
+      data: {
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify email change',
       error: error.message,
     });
   }

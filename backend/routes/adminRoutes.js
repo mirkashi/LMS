@@ -13,6 +13,28 @@ router.get(
   adminController.getAllUsers
 );
 
+// Admin Profile
+router.get(
+  '/profile',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getProfile
+);
+
+router.put(
+  '/profile',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateProfile
+);
+
+router.post(
+  '/verify-email-change',
+  authMiddleware,
+  adminMiddleware,
+  adminController.verifyEmailChange
+);
+
 // Course management
 router.post(
   '/courses',

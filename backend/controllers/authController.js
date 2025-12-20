@@ -1,7 +1,11 @@
 const crypto = require('crypto');
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
-const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
+const { 
+  sendVerificationEmail, 
+  sendVerificationCodeEmail, 
+  sendPasswordResetEmail 
+} = require('../utils/mailer');
 
 const findUserByVerificationToken = async (token) => {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -24,6 +28,15 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+      });
+    }
+
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -31,10 +44,19 @@ exports.register = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    // Enhanced password validation
+    if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long',
+        message: 'Password must be at least 8 characters long',
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
       });
     }
 
@@ -50,26 +72,33 @@ exports.register = async (req, res) => {
     // Create new user
     const user = new User({ name, email, password });
     
-    // Generate verification token
-    const verificationToken = user.generateEmailVerificationToken();
+    // Generate 6-digit verification code
+    const verificationCode = user.generateVerificationCode();
+    user.lastEmailVerificationSentAt = Date.now();
+    
     await user.save();
 
-    // Send verification email
+    // Send verification code email
     try {
-      await sendVerificationEmail(email, verificationToken);
+      await sendVerificationCodeEmail(email, verificationCode, name);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful! A 6-digit verification code has been sent to your email.',
+        userId: user._id,
+        email: user.email,
+      });
     } catch (emailError) {
       console.error('Email sending failed:', emailError);
+      
+      // Delete the user if email fails
+      await User.findByIdAndDelete(user._id);
+      
       return res.status(500).json({
         success: false,
-        message: 'Registration failed: could not send verification email',
+        message: 'Registration failed: could not send verification email. Please try again.',
       });
     }
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully. Please check your email for verification.',
-      userId: user._id,
-    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -120,6 +149,163 @@ exports.verifyEmail = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Email verification failed',
+      error: error.message,
+    });
+  }
+};
+
+// Verify Email with 6-digit Code
+exports.verifyEmailCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and verification code are required',
+      });
+    }
+
+    // Validate code format (6 digits)
+    if (!/^\d{6}$/.test(code)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid code format. Code must be 6 digits.',
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified',
+      });
+    }
+
+    // Check if code has expired
+    if (!user.emailVerificationCodeExpires || user.emailVerificationCodeExpires < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.',
+      });
+    }
+
+    // Check max attempts (3 attempts)
+    if (user.emailVerificationAttempts >= 3) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many failed attempts. Please request a new verification code.',
+      });
+    }
+
+    // Verify the code
+    const isValidCode = user.verifyCode(code);
+
+    if (!isValidCode) {
+      user.emailVerificationAttempts += 1;
+      await user.save();
+
+      const attemptsLeft = 3 - user.emailVerificationAttempts;
+      return res.status(400).json({
+        success: false,
+        message: `Invalid verification code. ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining.`,
+      });
+    }
+
+    // Successfully verified
+    user.isEmailVerified = true;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationCodeExpires = undefined;
+    user.emailVerificationAttempts = 0;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully! You can now log in.',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Email verification failed',
+      error: error.message,
+    });
+  }
+};
+
+// Resend Verification Code
+exports.resendVerificationCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified',
+      });
+    }
+
+    // Rate limiting: Check if last email was sent less than 1 minute ago
+    if (user.lastEmailVerificationSentAt) {
+      const timeSinceLastSend = Date.now() - user.lastEmailVerificationSentAt.getTime();
+      const oneMinute = 60 * 1000;
+
+      if (timeSinceLastSend < oneMinute) {
+        const secondsLeft = Math.ceil((oneMinute - timeSinceLastSend) / 1000);
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${secondsLeft} seconds before requesting a new code`,
+        });
+      }
+    }
+
+    // Generate new verification code
+    const verificationCode = user.generateVerificationCode();
+    user.lastEmailVerificationSentAt = Date.now();
+    await user.save();
+
+    // Send verification code email
+    try {
+      await sendVerificationCodeEmail(email, verificationCode, user.name);
+
+      res.status(200).json({
+        success: true,
+        message: 'A new verification code has been sent to your email',
+      });
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.',
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend verification code',
       error: error.message,
     });
   }
