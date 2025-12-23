@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
 import { MagnifyingGlassIcon, FunnelIcon, PlusIcon, PencilIcon, EyeIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import AppImage from '@/components/AppImage';
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -326,8 +327,8 @@ export default function CoursesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         {course.image && (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL}/${course.image}`}
+                          <AppImage
+                            path={course.image}
                             alt={course.title}
                             className="w-12 h-12 rounded-lg object-cover mr-4"
                           />

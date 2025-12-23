@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useShop } from '@/context/ShopContext';
 import { HeartIcon } from '@heroicons/react/24/outline';
+import AppImage from '@/components/AppImage';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 interface Product {
@@ -136,10 +137,11 @@ export default function ProductPage() {
                 className="relative w-full max-w-lg aspect-square bg-white rounded-xl shadow-lg overflow-hidden group"
               >
                 {(product.images?.[selectedImageIndex] || product.image) ? (
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${product.images?.[selectedImageIndex] || product.image}`}
+                  <AppImage
+                    path={product.images?.[selectedImageIndex] || product.image}
                     alt={product.name}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700"
+                    loading="eager"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl bg-gray-100 text-gray-300">
@@ -172,7 +174,7 @@ export default function ProductPage() {
                       }`}
                       aria-label={`View image ${idx + 1}`}
                     >
-                      <img src={`${process.env.NEXT_PUBLIC_API_URL}${src}`} alt="" className="h-full w-full object-cover" />
+                      <AppImage path={src} alt="" className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>

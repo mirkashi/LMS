@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import AppImage from '@/components/AppImage';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -138,8 +139,8 @@ export default function ProductsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           {product.image && (
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}/${product.image}`}
+                            <AppImage
+                              path={product.image}
                               alt={product.name}
                               className="w-10 h-10 rounded-lg object-cover mr-3"
                             />

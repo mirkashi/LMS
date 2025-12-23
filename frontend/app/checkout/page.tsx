@@ -1,5 +1,7 @@
 'use client';
 
+import AppImage from '@/components/AppImage';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useShop } from '@/context/ShopContext';
@@ -514,8 +516,8 @@ export default function Checkout() {
                   <li key={item.product._id} className="flex py-6">
                     <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                       {(item.product.images?.[0] || item.product.image) ? (
-                        <img
-                          src={item.product.images?.[0] || item.product.image}
+                        <AppImage
+                          path={item.product.images?.[0] || item.product.image}
                           alt={item.product.name}
                           className="h-full w-full object-cover object-center"
                         />

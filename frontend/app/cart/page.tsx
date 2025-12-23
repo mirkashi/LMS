@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
+import AppImage from '@/components/AppImage';
 import { TrashIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -70,8 +71,8 @@ export default function CartPage() {
                   {/* Product Image */}
                   <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                     {(item.product.images?.[0] || item.product.image) ? (
-                      <img
-                        src={`${process.env.NEXT_PUBLIC_API_URL}${item.product.images?.[0] || item.product.image}`}
+                      <AppImage
+                        path={item.product.images?.[0] || item.product.image}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
                       />

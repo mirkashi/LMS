@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import AppImage from '@/components/AppImage';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -84,8 +85,8 @@ export default function StudentDashboard() {
                   className="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden border border-gray-100"
                 >
                   {course.thumbnail && (
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}/${String(course.thumbnail).replace(/^\/+/, '')}`}
+                    <AppImage
+                      path={course.thumbnail}
                       alt={course.title}
                       className="w-full h-48 object-cover"
                     />
@@ -155,9 +156,13 @@ export default function StudentDashboard() {
                         <div className="hidden sm:flex items-center gap-2">
                           {(order.items || []).slice(0, 3).map((item: any, idx: number) => {
                             const imgPath = item?.product?.images?.[0] || item?.product?.image || item?.course?.thumbnail;
-                            const imgUrl = imgPath ? `${process.env.NEXT_PUBLIC_API_URL}/${String(imgPath).replace(/^\/+/, '')}` : null;
-                            return imgUrl ? (
-                              <img key={idx} src={imgUrl} alt={item.product?.name || item.course?.title || 'Item'} className="w-8 h-8 rounded object-cover border border-gray-200" />
+                            return imgPath ? (
+                              <AppImage
+                                key={idx}
+                                path={imgPath}
+                                alt={item.product?.name || item.course?.title || 'Item'}
+                                className="w-8 h-8 rounded object-cover border border-gray-200"
+                              />
                             ) : null;
                           })}
                           {order.items?.length > 3 && (

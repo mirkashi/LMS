@@ -1,5 +1,7 @@
 "use client";
 
+import AppImage from '@/components/AppImage';
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -626,12 +628,17 @@ export default function OrdersPage() {
                       <ul className="text-sm text-gray-900 space-y-2">
                         {(order.items || []).map((item, idx) => {
                           const imgPath = (item.product as any)?.images?.[0] || (item.product as any)?.image || (item.course as any)?.thumbnail;
-                          const imgUrl = imgPath ? `${process.env.NEXT_PUBLIC_API_URL}/${imgPath.replace(/^\/+/, '')}` : null;
+                          const imgUrl = imgPath;
                           return (
                             <li key={idx} className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0">
                                 {imgUrl && (
-                                  <img src={imgUrl} alt={item.product?.name || item.course?.title || 'Item'} className="w-8 h-8 rounded object-cover border border-gray-200" loading="lazy" />
+                                  <AppImage
+                                    path={imgUrl}
+                                    alt={item.product?.name || item.course?.title || 'Item'}
+                                    className="w-8 h-8 rounded object-cover border border-gray-200"
+                                    loading="lazy"
+                                  />
                                 )}
                                 <span className="truncate max-w-[200px]">{item.product?.name || item.course?.title || 'Item'}</span>
                               </div>
@@ -734,12 +741,16 @@ export default function OrdersPage() {
                   <ul className="mt-2 divide-y divide-gray-200 border border-gray-200 rounded-lg">
                     {(selected.items || []).map((item: any, idx: number) => {
                       const imgPath = item?.product?.images?.[0] || item?.product?.image || item?.course?.thumbnail;
-                      const imgUrl = imgPath ? `${process.env.NEXT_PUBLIC_API_URL}/${String(imgPath).replace(/^\/+/, '')}` : null;
+                      const imgUrl = imgPath;
                       return (
                         <li key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
                           <div className="flex items-center gap-3 min-w-0">
                             {imgUrl && (
-                              <img src={imgUrl} alt={item.product?.name || item.course?.title || 'Item'} className="w-10 h-10 rounded object-cover border border-gray-200" />
+                              <AppImage
+                                path={imgUrl}
+                                alt={item.product?.name || item.course?.title || 'Item'}
+                                className="w-10 h-10 rounded object-cover border border-gray-200"
+                              />
                             )}
                             <span className="font-medium truncate">{item.product?.name || item.course?.title || 'Item'}</span>
                           </div>

@@ -61,7 +61,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             stock: product.stock.toString(),
           });
           if (product.image) {
-            setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}/${product.image}`);
+            // Use asset URL helper to avoid accidentally prefixing `/api`.
+            setImagePreview(product.image);
           }
         } else {
           setError('Failed to fetch product details');

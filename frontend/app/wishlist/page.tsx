@@ -5,6 +5,7 @@ import { useShop } from '@/context/ShopContext';
 import { TrashIcon, ShoppingBagIcon, HeartIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import AppImage from '@/components/AppImage';
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -70,8 +71,8 @@ export default function WishlistPage() {
                 onClick={() => handleViewProduct(product._id)}
               >
                 {(product.images?.[0] || product.image) ? (
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${product.images?.[0] || product.image}`}
+                  <AppImage
+                    path={product.images?.[0] || product.image}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

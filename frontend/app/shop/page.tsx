@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
+import AppImage from '@/components/AppImage';
 import { HeartIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
@@ -239,8 +240,8 @@ export default function Shop() {
                     <div className="block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
                         {(product.images?.[0] || product.image) ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL}${product.images?.[0] || product.image}`}
+                          <AppImage
+                            path={product.images?.[0] || product.image}
                             alt={product.name}
                             className="w-full h-full object-cover object-center transform group-hover:scale-105 transition duration-700 ease-in-out"
                           />
