@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
@@ -18,6 +18,8 @@ export default function Shop() {
   const [sortOrder, setSortOrder] = useState('asc');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const heroBackground = 'https://placehold.co/1600x900';
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -77,7 +79,19 @@ export default function Shop() {
   const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  const categories = Array.from(new Set(products.map((p: any) => p.category)));
+  const categories = useMemo(() => Array.from(new Set(products.map((p: any) => p.category))), [products]);
+  const categoryCounts = useMemo(() => {
+    return products.reduce((acc: Record<string, number>, p: any) => {
+      if (!p.category) return acc;
+      acc[p.category] = (acc[p.category] || 0) + 1;
+      return acc;
+    }, {});
+  }, [products]);
+
+  const clearFilters = () => {
+    setFilters({ category: '', minPrice: '', maxPrice: '', search: '' });
+    setFiltersOpen(false);
+  };
 
   const handleWishlist = async (e: React.MouseEvent, product: any) => {
     e.preventDefault();
@@ -107,12 +121,22 @@ export default function Shop() {
   return (
     <main className="min-h-screen bg-white text-gray-900 font-sans">
       {/* Classic Header */}
-      <div className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4 tracking-tight">
+      <div className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-center bg-cover"
+          style={{ backgroundImage: `url(${heroBackground})` }}
+          role="img"
+          aria-label="Collection cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 via-gray-900/55 to-gray-900/40" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center text-white">
+          <div className="inline-flex px-3 py-1 rounded-full border border-white/30 bg-white/10 text-xs uppercase tracking-[0.2em] mb-4">
+            New Season Drop
+          </div>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4 tracking-tight">
             The Collection
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light">
+          <p className="text-lg max-w-2xl mx-auto font-light">
             Curated digital assets and educational resources for the modern entrepreneur.
           </p>
         </div>
@@ -120,70 +144,111 @@ export default function Shop() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Refined Sidebar Filters */}
-          <aside className="w-full lg:w-64 flex-shrink-0 space-y-10">
-            {/* Search */}
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-4 border-b border-gray-200 pb-2">Search</h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 outline-none transition-all text-sm"
-                />
-                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+          {/* Sidebar Filters */}
+          <aside className="w-full lg:w-72 flex-shrink-0">
+            <div className="flex items-center justify-between lg:hidden mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+              <button
+                onClick={() => setFiltersOpen((prev) => !prev)}
+                className="text-sm font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-2"
+              >
+                {filtersOpen ? 'Hide' : 'Show'}
+              </button>
             </div>
 
-            {/* Categories */}
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-4 border-b border-gray-200 pb-2">Categories</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setFilters({ ...filters, category: '' })}
-                  className={`block w-full text-left text-sm transition-colors ${
-                    filters.category === '' ? 'text-gray-900 font-bold' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  All Products
-                </button>
-                {categories.map((category: any) => (
+            <div className={`${filtersOpen ? 'block' : 'hidden lg:block'} sticky top-24 space-y-6`}>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Refine</p>
+                    <h3 className="text-lg font-semibold text-gray-900">Search & Filter</h3>
+                  </div>
                   <button
-                    key={category}
-                    onClick={() => setFilters({ ...filters, category })}
-                    className={`block w-full text-left text-sm transition-colors ${
-                      filters.category === category ? 'text-gray-900 font-bold' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-gray-600 hover:text-gray-900 underline"
                   >
-                    {category}
+                    Clear all
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Price Range */}
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-4 border-b border-gray-200 pb-2">Price</h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-none focus:border-gray-900 outline-none text-sm"
-                />
-                <span className="text-gray-400">-</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-none focus:border-gray-900 outline-none text-sm"
-                />
+                {/* Search */}
+                <label className="block text-sm font-medium text-gray-800 mb-2" htmlFor="search">
+                  Search products
+                </label>
+                <div className="relative mb-5">
+                  <input
+                    id="search"
+                    type="text"
+                    placeholder="e.g. UI kit, course"
+                    value={filters.search}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-sm shadow-inner"
+                  />
+                  <svg className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                {/* Categories */}
+                <div className="mb-5">
+                  <p className="text-sm font-medium text-gray-800 mb-2">Categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setFilters({ ...filters, category: '' })}
+                      className={`px-3 py-2 text-sm rounded-full border transition-all ${
+                        filters.category === ''
+                          ? 'bg-gray-900 text-white border-gray-900 shadow'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      All ({products.length})
+                    </button>
+                    {categories.map((category: any) => (
+                      <button
+                        key={category}
+                        onClick={() => setFilters({ ...filters, category })}
+                        className={`px-3 py-2 text-sm rounded-full border transition-all ${
+                          filters.category === category
+                            ? 'bg-gray-900 text-white border-gray-900 shadow'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+                        }`}
+                        aria-pressed={filters.category === category}
+                      >
+                        {category} ({categoryCounts[category] || 0})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Range */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-gray-800">Price range (PKR)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500" htmlFor="min-price">Min</label>
+                      <input
+                        id="min-price"
+                        type="number"
+                        placeholder="0"
+                        value={filters.minPrice}
+                        onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500" htmlFor="max-price">Max</label>
+                      <input
+                        id="max-price"
+                        type="number"
+                        placeholder="50000"
+                        value={filters.maxPrice}
+                        onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">Tip: leave blank for no limit.</p>
+                </div>
               </div>
             </div>
           </aside>

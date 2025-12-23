@@ -25,6 +25,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarHover, setSidebarHover] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -52,6 +53,8 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
 
+  const isExpanded = isMobile ? sidebarOpen : sidebarHover;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
@@ -63,17 +66,23 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-        sidebarOpen || !isMobile ? 'translate-x-0' : '-translate-x-full'
-      } ${isMobile ? 'lg:translate-x-0' : ''}`}>
+      <div
+        className={`fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${
+          isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'
+        } ${isExpanded ? 'w-64' : 'w-20'} ${isMobile ? 'lg:translate-x-0' : ''}`}
+        onMouseEnter={() => !isMobile && setSidebarHover(true)}
+        onMouseLeave={() => !isMobile && setSidebarHover(false)}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <Link href="/dashboard" className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">LMS</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">Admin Panel</span>
+              <span className={`text-xl font-bold text-gray-900 transition-opacity duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:inline'}`}>
+                Admin Panel
+              </span>
             </Link>
             {isMobile && (
               <button
@@ -86,37 +95,49 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-3 py-6 space-y-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 group"
+                className={`flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 group ${
+                  isExpanded ? 'justify-start' : 'justify-center'
+                }`}
                 onClick={() => isMobile && setSidebarOpen(false)}
               >
-                <item.icon className="w-5 h-5 mr-3 text-gray-400 group-hover:text-blue-600" />
-                <span className="font-medium">{item.name}</span>
+                <item.icon className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 ${isExpanded ? 'mr-3' : ''}`} />
+                <span
+                  className={`font-medium whitespace-nowrap transition-opacity duration-200 ${
+                    isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:inline'
+                  }`}
+                >
+                  {item.name}
+                </span>
               </Link>
             ))}
           </nav>
 
           {/* User section */}
           <div className="border-t border-gray-200 p-4">
-            <div className="flex items-center justify-between">
+            <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'}`}>
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
                     {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                   </span>
                 </div>
-                <div className="ml-3">
+                <div
+                  className={`ml-3 transition-opacity duration-200 ${
+                    isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:block'
+                  }`}
+                >
                   <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin'}</p>
                   <p className="text-xs text-gray-500">Administrator</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-red-600 transition-colors duration-200"
+                className={`p-2 text-gray-400 hover:text-red-600 transition-colors duration-200 ${isExpanded ? '' : 'ml-0'}`}
                 title="Logout"
               >
                 <ArrowRightOnRectangleIcon className="w-5 h-5" />
@@ -127,7 +148,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className={`transition-all duration-300 ease-in-out ${isMobile ? 'pl-0' : 'pl-64'}`}>
+      <div className={`transition-all duration-300 ease-in-out ${isMobile ? 'pl-0' : isExpanded ? 'pl-64' : 'pl-20'}`}>
         {/* Top bar for mobile */}
         {isMobile && (
           <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
