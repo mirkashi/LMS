@@ -404,7 +404,7 @@ export default function CreateProductPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Price ($) *
+                        Price (PKR) *
                       </label>
                       <input
                         type="number"
@@ -534,7 +534,7 @@ export default function CreateProductPage() {
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Pricing & Stock</h4>
                         <dl className="space-y-1">
-                          <div><dt className="text-sm text-gray-500 inline">Price:</dt> <dd className="text-sm text-gray-900 inline ml-2">${formData.price || '0.00'}</dd></div>
+                          <div><dt className="text-sm text-gray-500 inline">Price:</dt> <dd className="text-sm text-gray-900 inline ml-2">PKR {formData.price || '0.00'}</dd></div>
                           <div><dt className="text-sm text-gray-500 inline">Stock:</dt> <dd className="text-sm text-gray-900 inline ml-2">{formData.stock || 'Unlimited'}</dd></div>
                         </dl>
                       </div>

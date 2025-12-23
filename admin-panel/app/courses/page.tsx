@@ -344,7 +344,7 @@ export default function CoursesPage() {
                         {course.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-green-600">${course.price}</td>
+                    <td className="px-6 py-4 font-semibold text-green-600">PKR {course.price}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                         course.isPublished

@@ -85,7 +85,7 @@ export default function StudentDashboard() {
                 >
                   {course.thumbnail && (
                     <img
-                      src={course.thumbnail}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}/${String(course.thumbnail).replace(/^\/+/, '')}`}
                       alt={course.title}
                       className="w-full h-48 object-cover"
                     />
@@ -152,6 +152,18 @@ export default function StudentDashboard() {
                         </p>
                       </div>
                       <div className="flex items-center gap-6">
+                        <div className="hidden sm:flex items-center gap-2">
+                          {(order.items || []).slice(0, 3).map((item: any, idx: number) => {
+                            const imgPath = item?.product?.images?.[0] || item?.product?.image || item?.course?.thumbnail;
+                            const imgUrl = imgPath ? `${process.env.NEXT_PUBLIC_API_URL}/${String(imgPath).replace(/^\/+/, '')}` : null;
+                            return imgUrl ? (
+                              <img key={idx} src={imgUrl} alt={item.product?.name || item.course?.title || 'Item'} className="w-8 h-8 rounded object-cover border border-gray-200" />
+                            ) : null;
+                          })}
+                          {order.items?.length > 3 && (
+                            <span className="text-xs text-gray-500">+{order.items.length - 3}</span>
+                          )}
+                        </div>
                         <span className="text-lg font-bold text-gray-900">PKR {order.totalAmount.toFixed(2)}</span>
                         {/* Future: Add View Details button */}
                       </div>

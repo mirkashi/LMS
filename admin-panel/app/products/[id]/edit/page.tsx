@@ -356,11 +356,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price ($)
+                      Price (PKR)
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                        <span className="text-gray-500">PKR</span>
                       </div>
                       <input
                         type="number"
@@ -479,7 +479,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                       </div>
                       <div>
                         <dt className="text-sm text-gray-500">Price</dt>
-                        <dd className="text-sm font-medium text-gray-900">${formData.price}</dd>
+                        <dd className="text-sm font-medium text-gray-900">PKR {formData.price}</dd>
                       </div>
                       <div>
                         <dt className="text-sm text-gray-500">Stock</dt>
