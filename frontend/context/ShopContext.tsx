@@ -7,6 +7,7 @@ interface Product {
   name: string;
   price: number;
   image?: string;
+  images?: string[];
   category: string;
 }
 
@@ -168,12 +169,15 @@ export function ShopProvider({ children }: { children: ReactNode }) {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-          // Optimistic update or fetch again. The API returns the list of IDs, not populated objects usually, 
-          // but my API implementation returns the list. 
-          // Wait, my API implementation returns the list of IDs. 
-          // I should probably return the populated list or handle it here.
-          // For simplicity, I'll just add it locally if success.
-          setWishlist(prev => [...prev, product]);
+          const data = await res.json();
+          // Re-fetch populated wishlist
+          const wishlistRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/wishlist`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (wishlistRes.ok) {
+            const wishlistData = await wishlistRes.json();
+            setWishlist(wishlistData.data);
+          }
         }
       } catch (error) {
         console.error('Error adding to wishlist:', error);
@@ -215,8 +219,21 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('cart');
   };
 
-  const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+  // Filter out items with null/undefined products and calculate totals
+  const validCart = cart.filter(item => item.product && item.product.price !== undefined);
+  const cartTotal = validCart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  const cartCount = validCart.reduce((count, item) => count + item.quantity, 0);
+
+  // Clean up invalid cart items
+  useEffect(() => {
+    if (cart.length > validCart.length) {
+      console.warn('Removing invalid items from cart');
+      setCart(validCart);
+      if (!isAuthenticated) {
+        localStorage.setItem('cart', JSON.stringify(validCart));
+      }
+    }
+  }, [cart, validCart, isAuthenticated]);
 
   return (
     <ShopContext.Provider value={{

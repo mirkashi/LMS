@@ -15,6 +15,7 @@ interface Product {
   price: number;
   category: string;
   image?: string;
+  images?: string[];
   stock: number;
   rating: number;
   totalRatings: number;
@@ -40,6 +41,7 @@ export default function ProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('description');
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState('standard');
   
   // Mock reviews
@@ -133,9 +135,9 @@ export default function ProductPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative w-full max-w-lg aspect-square bg-white rounded-xl shadow-lg overflow-hidden group"
               >
-                {product.image ? (
+                {(product.images?.[selectedImageIndex] || product.image) ? (
                   <img
-                    src={product.image}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${product.images?.[selectedImageIndex] || product.image}`}
                     alt={product.name}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700"
                   />
@@ -157,6 +159,24 @@ export default function ProductPage() {
                   </button>
                 </div>
               </motion.div>
+
+              {Array.isArray(product.images) && product.images.length > 1 && (
+                <div className="mt-4 grid grid-cols-5 gap-2 max-w-lg mx-auto">
+                  {product.images.slice(0, 5).map((src: string, idx: number) => (
+                    <button
+                      key={`${src}-${idx}`}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`aspect-square overflow-hidden rounded-lg border bg-white ${
+                        idx === selectedImageIndex ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-200'
+                      }`}
+                      aria-label={`View image ${idx + 1}`}
+                    >
+                      <img src={`${process.env.NEXT_PUBLIC_API_URL}${src}`} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Product Details */}

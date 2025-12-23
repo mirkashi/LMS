@@ -17,8 +17,8 @@ export default function CreateProductPage() {
     price: '',
     stock: '',
   });
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -70,17 +70,61 @@ export default function CreateProductPage() {
     }));
   };
 
+  const maxImages = 5;
+
+  const addImages = (files: FileList | File[]) => {
+    const incoming = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (incoming.length === 0) return;
+
+    const remaining = Math.max(0, maxImages - images.length);
+    const accepted = incoming.slice(0, remaining);
+
+    if (accepted.length === 0) {
+      setError(`You can upload a maximum of ${maxImages} images.`);
+      return;
+    }
+
+    setError('');
+    setImages((prev) => [...prev, ...accepted]);
+  };
+
+  // Generate previews whenever images change
+  useEffect(() => {
+    if (images.length === 0) {
+      setImagePreviews([]);
+      return;
+    }
+
+    let canceled = false;
+
+    const createPreviews = async () => {
+      const previews = await Promise.all(
+        images.map(
+          (file) =>
+            new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = (ev) => resolve(ev.target?.result as string);
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+
+      if (!canceled) setImagePreviews(previews);
+    };
+
+    createPreviews();
+    return () => {
+      canceled = true;
+    };
+  }, [images]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Store file in local state only - NO UPLOAD occurs here
-      setImage(file);
-      // Create local preview using FileReader API - NO server upload
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.target.files) {
+      addImages(e.target.files);
+      // Reset input so selecting the same file again works
+      e.target.value = '';
     }
   };
 
@@ -99,19 +143,8 @@ export default function CreateProductPage() {
     e.stopPropagation();
     setDragActive(false);
 
-    const files = e.dataTransfer.files;
-    if (files?.[0]) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        // Store file in local state only - NO UPLOAD occurs here
-        setImage(file);
-        // Create local preview using FileReader API - NO server upload
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImagePreview(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addImages(e.dataTransfer.files);
     }
   };
 
@@ -148,8 +181,16 @@ export default function CreateProductPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Prevent implicit submissions (e.g., browser submits form on Enter or other controls)
+    // Only allow submission via our explicit submit button.
+    const submitter = (e.nativeEvent as any)?.submitter as HTMLElement | undefined;
+    if (!submitter || submitter.getAttribute('data-submit') !== 'create-product') {
+      console.warn('Blocked implicit form submission');
+      return;
+    }
     
     // SAFETY CHECK #1: Only submit on final step
     // This ensures no premature data persistence
@@ -195,10 +236,10 @@ export default function CreateProductPage() {
       formDataObj.append('price', formData.price);
       formDataObj.append('stock', formData.stock || '0');
 
-      // Add image file if selected
-      if (image) {
-        formDataObj.append('image', image);
-      }
+      // Add image files if selected
+      images.forEach((file) => {
+        formDataObj.append('images', file);
+      });
 
       // SINGLE API CALL: Create product with all data including file upload
       const response = await fetch(
@@ -296,8 +337,13 @@ export default function CreateProductPage() {
             )}
 
             <form onSubmit={handleSubmit} onKeyDown={(e) => {
-              if (e.key === 'Enter' && currentStep !== totalSteps) {
-                e.preventDefault();
+              // Prevent Enter key from submitting form except on final step
+              if (e.key === 'Enter') {
+                const target = e.target as HTMLElement;
+                // Allow submission only if it's the submit button on final step
+                if (currentStep !== totalSteps || target.getAttribute('type') !== 'submit') {
+                  e.preventDefault();
+                }
               }
             }}>
               {/* Step 1: Basic Info */}
@@ -402,7 +448,7 @@ export default function CreateProductPage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Product Image
+                      Product Images (up to 5)
                     </label>
                     <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -415,51 +461,67 @@ export default function CreateProductPage() {
                       onDragOver={handleDrag}
                       onDrop={handleDrop}
                     >
-                      {imagePreview ? (
+                      {imagePreviews.length > 0 ? (
                         <div className="space-y-4">
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="max-w-xs max-h-48 mx-auto rounded-lg object-cover"
-                          />
-                          <div>
-                            <p className="text-sm text-gray-600 mb-2">Image uploaded successfully!</p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImage(null);
-                                setImagePreview(null);
-                              }}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium"
-                            >
-                              Remove image
-                            </button>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {imagePreviews.map((src, idx) => (
+                              <div key={idx} className="relative group">
+                                <img
+                                  src={src}
+                                  alt={`Preview ${idx + 1}`}
+                                  className="h-28 w-full rounded-lg object-cover border border-gray-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImages((prev) => prev.filter((_, i) => i !== idx));
+                                  }}
+                                  className="absolute top-2 right-2 hidden group-hover:inline-flex px-2 py-1 text-xs rounded bg-black/70 text-white"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <span>{images.length} / {maxImages} selected</span>
+                            {images.length < maxImages && (
+                              <label
+                                htmlFor="image-upload"
+                                className="inline-flex items-center px-3 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Add more
+                              </label>
+                            )}
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-4">
                           <CloudArrowUpIcon className="w-12 h-12 text-gray-400 mx-auto" />
                           <div>
-                            <p className="text-lg font-medium text-gray-900">Upload product image</p>
+                            <p className="text-lg font-medium text-gray-900">Upload product images</p>
                             <p className="text-gray-500">Drag and drop an image here, or click to browse</p>
                           </div>
                           <input
                             type="file"
+                            id="image-upload"
+                            multiple
                             accept="image/*"
                             onChange={handleImageChange}
                             className="hidden"
-                            id="image-upload"
                           />
                           <label
                             htmlFor="image-upload"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             Choose File
                           </label>
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG or PNG format</p>
+                    <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG/PNG/WebP. You can select up to 5 images.</p>
                   </div>
 
                   {/* Review Section */}
@@ -508,6 +570,7 @@ export default function CreateProductPage() {
                 ) : (
                   <button
                     type="submit"
+                    data-submit="create-product"
                     disabled={loading || !validateStep(currentStep)}
                     className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >

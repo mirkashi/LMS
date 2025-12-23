@@ -648,8 +648,12 @@ exports.createProduct = async (req, res) => {
       createdBy: adminId,
     });
 
-    if (req.file) {
-      product.image = `/uploads/${req.file.filename}`;
+    // Support multi-image uploads
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      const urls = req.files.map((f) => `/uploads/${f.filename}`);
+      product.images = urls;
+      // Keep legacy field set to the first image for older clients
+      product.image = urls[0];
     }
 
     await product.save();
@@ -689,6 +693,34 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+// Get Single Product by ID (Admin)
+exports.getProductById = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const product = await Product.findById(productId)
+      .populate('createdBy', 'name email');
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product',
+      error: error.message,
+    });
+  }
+};
+
 // Update Product (Admin)
 exports.updateProduct = async (req, res) => {
   try {
@@ -711,8 +743,12 @@ exports.updateProduct = async (req, res) => {
     if (stock !== undefined) product.stock = stock;
     if (isAvailable !== undefined) product.isAvailable = isAvailable;
 
-    if (req.file) {
-      product.image = `/uploads/${req.file.filename}`;
+    // Support multi-image uploads
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      const urls = req.files.map((f) => `/uploads/${f.filename}`);
+      product.images = urls;
+      // Keep legacy field set to the first image for older clients
+      product.image = urls[0];
     }
 
     product.updatedAt = Date.now();

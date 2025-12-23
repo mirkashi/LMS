@@ -143,7 +143,7 @@ export default function Navbar() {
               <div className="hidden md:flex items-center gap-3">
                 <button
                   className={`relative p-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all ${cartPulse ? 'animate-bounce' : ''}`}
-                  onClick={() => router.push('/checkout')}
+                  onClick={() => router.push('/cart')}
                   aria-label="View cart"
                 >
                   <ShoppingBagIcon className="w-5 h-5 text-gray-800" />

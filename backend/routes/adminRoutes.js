@@ -112,7 +112,7 @@ router.post(
   '/products',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.single('image'),
+  uploadMiddleware.array('images', 5),
   adminController.createProduct
 );
 
@@ -123,11 +123,18 @@ router.get(
   adminController.getAllProducts
 );
 
+router.get(
+  '/products/:productId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getProductById
+);
+
 router.put(
   '/products/:productId',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.single('image'),
+  uploadMiddleware.array('images', 5),
   adminController.updateProduct
 );
 

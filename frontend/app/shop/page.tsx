@@ -92,7 +92,7 @@ export default function Shop() {
     e.preventDefault();
     e.stopPropagation();
     await addToCart(product);
-    router.push('/checkout');
+    router.push('/cart');
   };
 
   if (loading) {
@@ -233,13 +233,14 @@ export default function Shop() {
                     key={product._id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group"
+                    className="group cursor-pointer"
+                    onClick={() => router.push(`/shop/${product._id}`)}
                   >
                     <div className="block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
                       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-                        {product.image ? (
+                        {(product.images?.[0] || product.image) ? (
                           <img
-                            src={product.image}
+                            src={`${process.env.NEXT_PUBLIC_API_URL}${product.images?.[0] || product.image}`}
                             alt={product.name}
                             className="w-full h-full object-cover object-center transform group-hover:scale-105 transition duration-700 ease-in-out"
                           />

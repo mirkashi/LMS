@@ -20,7 +20,13 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide a category'],
     },
+    // Backwards compatible single image
     image: String,
+    // Multi-image gallery (preferred)
+    images: {
+      type: [String],
+      default: [],
+    },
     stock: {
       type: Number,
       default: 0,

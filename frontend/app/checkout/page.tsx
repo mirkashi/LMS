@@ -513,9 +513,9 @@ export default function Checkout() {
                 {cart.map((item) => (
                   <li key={item.product._id} className="flex py-6">
                     <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                      {item.product.image ? (
+                      {(item.product.images?.[0] || item.product.image) ? (
                         <img
-                          src={item.product.image}
+                          src={item.product.images?.[0] || item.product.image}
                           alt={item.product.name}
                           className="h-full w-full object-cover object-center"
                         />
