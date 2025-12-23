@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -17,6 +17,7 @@ export default function AnnouncementBar() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [lastChecked, setLastChecked] = useState<number>(() => Date.now());
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAnnouncement = async () => {
@@ -52,6 +53,23 @@ export default function AnnouncementBar() {
     }
   };
 
+  // Reserve space for the navbar by setting a CSS variable to the bar height.
+  // Navbar reads this var as its sticky `top` offset.
+  useEffect(() => {
+    const setHeightVar = () => {
+      const height = isVisible && barRef.current ? barRef.current.offsetHeight : 0;
+      document.documentElement.style.setProperty('--announcement-height', `${height}px`);
+    };
+
+    setHeightVar();
+    window.addEventListener('resize', setHeightVar);
+    return () => {
+      window.removeEventListener('resize', setHeightVar);
+      // Clear on unmount
+      document.documentElement.style.setProperty('--announcement-height', '0px');
+    };
+  }, [isVisible, announcement, lastChecked]);
+
   if (!announcement || !isVisible) return null;
 
   const getTone = (type: string) => {
@@ -85,11 +103,12 @@ export default function AnnouncementBar() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
+          ref={barRef}
           initial={{ height: 0, opacity: 0, y: -12 }}
           animate={{ height: 'auto', opacity: 1, y: 0 }}
           exit={{ height: 0, opacity: 0, y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className={`sticky top-0 z-[60] overflow-hidden shadow-xl backdrop-blur`}
+          className={`fixed top-0 left-0 right-0 z-[60] overflow-hidden shadow-xl backdrop-blur`}
         >
           <div className={`absolute inset-0 bg-gradient-to-r ${tone.gradient} opacity-95`} />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#ffffff24,transparent_35%)]" />

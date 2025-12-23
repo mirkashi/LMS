@@ -267,11 +267,28 @@ export default function OrdersPage() {
     }
   };
 
-  const handlePrintInvoice = () => {
-    if (!printRef.current) return;
-    // Open print dialog with dedicated stylesheet
-    window.print();
-  };
+  const [printPending, setPrintPending] = useState(false);
+
+  const handlePrintInvoice = useCallback(() => {
+    // The print area is conditionally rendered from `selected`.
+    // We trigger printing after React flushes the UI update.
+    setPrintPending(true);
+  }, []);
+
+  useEffect(() => {
+    if (!printPending) return;
+    if (!selected) {
+      setPrintPending(false);
+      return;
+    }
+
+    const id = window.setTimeout(() => {
+      window.print();
+      setPrintPending(false);
+    }, 0);
+
+    return () => window.clearTimeout(id);
+  }, [printPending, selected]);
 
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {
@@ -647,7 +664,7 @@ export default function OrdersPage() {
                           className="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white hover:bg-gray-800 transition-colors"
                           onClick={() => {
                             setSelected(order);
-                            setTimeout(handlePrintInvoice, 100);
+                            handlePrintInvoice();
                           }}
                           aria-label={`Generate invoice for order ${order.orderId || order._id}`}
                         >
@@ -787,7 +804,7 @@ export default function OrdersPage() {
         )}
 
         {/* Printable Invoice */}
-        <div ref={printRef} className="print:block hidden">
+        <div ref={printRef} className="hidden print:block print-area">
           {selected && (
             <div className="p-8 text-black">
               <div className="flex items-start justify-between">
@@ -871,8 +888,16 @@ export default function OrdersPage() {
         <style>{`
           @media print {
             body * { visibility: hidden; }
-            .print\:block, .print\:block * { visibility: visible; }
-            .print\:block { position: absolute; left: 0; top: 0; width: 100%; }
+
+            /* Ensure the invoice is both visible AND rendered (not display:none). */
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { 
+              display: block !important;
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
           }
         `}</style>
       </div>
