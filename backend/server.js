@@ -62,12 +62,6 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
-app.use('/api/announcements', require('./routes/announcementRoutes'));
-app.use('/api/products', require('./routes/productRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/products', require('./routes/productRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

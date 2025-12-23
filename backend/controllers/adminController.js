@@ -648,13 +648,18 @@ exports.createProduct = async (req, res) => {
       createdBy: adminId,
     });
 
-    // Support multi-image uploads
-    if (Array.isArray(req.files) && req.files.length > 0) {
-      const urls = req.files.map((f) => `/uploads/${f.filename}`);
-      product.images = urls;
-      // Keep legacy field set to the first image for older clients
-      product.image = urls[0];
+    // Support multi-image uploads (require at least 5 images)
+    if (!Array.isArray(req.files) || req.files.length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload at least 5 product images',
+      });
     }
+
+    const urls = req.files.map((f) => `/uploads/${f.filename}`);
+    product.images = urls;
+    // Keep legacy field set to the first image for older clients
+    product.image = urls[0];
 
     await product.save();
 
@@ -744,7 +749,15 @@ exports.updateProduct = async (req, res) => {
     if (isAvailable !== undefined) product.isAvailable = isAvailable;
 
     // Support multi-image uploads
+    // If a new set of images is uploaded, require at least 5.
     if (Array.isArray(req.files) && req.files.length > 0) {
+      if (req.files.length < 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please upload at least 5 product images',
+        });
+      }
+
       const urls = req.files.map((f) => `/uploads/${f.filename}`);
       product.images = urls;
       // Keep legacy field set to the first image for older clients

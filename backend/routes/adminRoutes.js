@@ -112,7 +112,7 @@ router.post(
   '/products',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.array('images', 5),
+  uploadMiddleware.array('images', 10),
   adminController.createProduct
 );
 
@@ -134,7 +134,7 @@ router.put(
   '/products/:productId',
   authMiddleware,
   adminMiddleware,
-  uploadMiddleware.array('images', 5),
+  uploadMiddleware.array('images', 10),
   adminController.updateProduct
 );
 

@@ -44,7 +44,7 @@ export default function CreateProductPage() {
       const originalFetch = window.fetch;
       window.fetch = function(...args) {
         const url = args[0]?.toString() || '';
-        // Log API calls during development (except final submit which happens in handleSubmit)
+        // Log API calls during development (product creation should happen only via explicit click)
         if (url.includes('/admin/products') && !loading) {
           console.warn('⚠️ Development Warning: API call detected while not in submission state');
           console.warn('URL:', url);
@@ -70,7 +70,8 @@ export default function CreateProductPage() {
     }));
   };
 
-  const maxImages = 5;
+  const minImages = 5;
+  const maxImages = 10;
 
   const addImages = (files: FileList | File[]) => {
     const incoming = Array.from(files).filter((f) => f.type.startsWith('image/'));
@@ -82,6 +83,11 @@ export default function CreateProductPage() {
     if (accepted.length === 0) {
       setError(`You can upload a maximum of ${maxImages} images.`);
       return;
+    }
+
+    // Clear any previous "min images" error once the user starts adding
+    if (images.length + accepted.length >= minImages) {
+      setError('');
     }
 
     setError('');
@@ -155,7 +161,8 @@ export default function CreateProductPage() {
       case 2:
         return formData.price && parseFloat(formData.price) >= 0;
       case 3:
-        return true; // Image is optional
+        // Require at least 5 images before allowing final submission
+        return images.length >= minImages;
       default:
         return false;
     }
@@ -181,21 +188,16 @@ export default function CreateProductPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // Prevent implicit submissions (e.g., browser submits form on Enter or other controls)
-    // Only allow submission via our explicit submit button.
-    const submitter = (e.nativeEvent as any)?.submitter as HTMLElement | undefined;
-    if (!submitter || submitter.getAttribute('data-submit') !== 'create-product') {
-      console.warn('Blocked implicit form submission');
+  const handleCreateProduct = async () => {
+    // SAFETY CHECK #1: Only submit on final step
+    if (currentStep !== totalSteps) {
+      console.warn('Create product prevented: Not on final step');
       return;
     }
-    
-    // SAFETY CHECK #1: Only submit on final step
-    // This ensures no premature data persistence
-    if (currentStep !== totalSteps) {
-      console.warn('Form submission prevented: Not on final step');
+
+    // Extra UX: show a clear message if the image requirement is not met
+    if (images.length < minImages) {
+      setError(`Please upload at least ${minImages} images before creating the product.`);
       return;
     }
     
@@ -336,15 +338,9 @@ export default function CreateProductPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} onKeyDown={(e) => {
-              // Prevent Enter key from submitting form except on final step
-              if (e.key === 'Enter') {
-                const target = e.target as HTMLElement;
-                // Allow submission only if it's the submit button on final step
-                if (currentStep !== totalSteps || target.getAttribute('type') !== 'submit') {
-                  e.preventDefault();
-                }
-              }
+            <form onSubmit={(e) => e.preventDefault()} onKeyDown={(e) => {
+              // Prevent Enter key from implicitly submitting the form on any step
+              if (e.key === 'Enter') e.preventDefault();
             }}>
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
@@ -448,7 +444,7 @@ export default function CreateProductPage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Product Images (up to 5)
+                      Product Images (min 5, up to 10)
                     </label>
                     <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -521,7 +517,7 @@ export default function CreateProductPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG/PNG/WebP. You can select up to 5 images.</p>
+                    <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG/PNG/WebP. Please select at least 5 images (up to 10).</p>
                   </div>
 
                   {/* Review Section */}
@@ -569,8 +565,8 @@ export default function CreateProductPage() {
                   </button>
                 ) : (
                   <button
-                    type="submit"
-                    data-submit="create-product"
+                    type="button"
+                    onClick={handleCreateProduct}
                     disabled={loading || !validateStep(currentStep)}
                     className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
