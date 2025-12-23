@@ -19,7 +19,8 @@ export default function Shop() {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const heroBackground = 'https://placehold.co/1600x900';
+  // Placeholder image URL lives here
+  const heroBackground = '';
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -144,7 +145,7 @@ export default function Shop() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sidebar Filters */}
+          {/* Sidebar filters card */}
           <aside className="w-full lg:w-72 flex-shrink-0">
             <div className="flex items-center justify-between lg:hidden mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
@@ -220,7 +221,7 @@ export default function Shop() {
                   </div>
                 </div>
 
-                {/* Price Range */}
+                {/* Price range */}
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-gray-800">Price range (PKR)</p>
                   <div className="grid grid-cols-2 gap-3">
