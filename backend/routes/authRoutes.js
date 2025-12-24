@@ -5,11 +5,11 @@ const rateLimit = require('express-rate-limit');
 
 // Rate limiter for registration attempts
 const registrationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Max 3 registration attempts per hour per IP
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 registration attempts per 15 minutes per IP
   message: {
     success: false,
-    message: 'Too many registration attempts. Please try again after an hour.',
+    message: 'Too many registration attempts. Please try again after 15 minutes.',
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -39,17 +39,6 @@ const resendLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limiter for login attempts
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Max 5 login attempts per 15 minutes
-  message: {
-    success: false,
-    message: 'Too many login attempts. Please try again after 15 minutes.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // Rate limiter for password reset requests
 const passwordResetLimiter = rateLimit({
@@ -68,8 +57,8 @@ router.post('/verify-email', authController.verifyEmail);
 router.get('/verify-email', authController.verifyEmail);
 router.post('/verify-code', verificationLimiter, authController.verifyEmailCode);
 router.post('/resend-code', resendLimiter, authController.resendVerificationCode);
-router.post('/login', loginLimiter, authController.login);
-router.post('/admin-login', loginLimiter, authController.adminLogin);
+router.post('/login', authController.login);
+router.post('/admin-login', authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 

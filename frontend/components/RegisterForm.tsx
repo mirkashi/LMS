@@ -38,14 +38,14 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
     if (name === 'password') {
       setValidations(prev => ({
         ...prev,
-        passwordLength: value.length >= 6,
-        passwordMatch: value === formData.confirmPassword && value.length >= 6,
+        passwordLength: value.length >= 8 && value.length <= 12,
+        passwordMatch: value === formData.confirmPassword && value.length >= 8 && value.length <= 12,
       }));
     }
     if (name === 'confirmPassword') {
       setValidations(prev => ({
         ...prev,
-        passwordMatch: value === formData.password && value.length >= 6,
+        passwordMatch: value === formData.password && formData.password.length >= 8 && formData.password.length <= 12,
       }));
     }
     if (name === 'email') {
@@ -267,7 +267,8 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
                 onFocus={() => setFocusedField('password')}
                 onBlur={() => setFocusedField(null)}
                 placeholder="••••••••"
-                minLength={6}
+                minLength={8}
+                maxLength={12}
                 required
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none transition-all duration-200 backdrop-blur-sm"
                 whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
@@ -285,7 +286,7 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
               className="text-xs text-gray-400 mt-2 flex items-center gap-2"
             >
               <span className={validations.passwordLength ? 'text-green-400' : 'text-gray-500'}>
-                {validations.passwordLength ? '✓' : '○'} At least 6 characters
+                {validations.passwordLength ? '✓' : '○'} 8–12 characters
               </span>
             </motion.p>
           </div>

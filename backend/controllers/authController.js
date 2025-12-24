@@ -44,19 +44,11 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Enhanced password validation
-    if (password.length < 8) {
+    // Password validation: only enforce length between 8 and 12 characters
+    if (password.length < 8 || password.length > 12) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 8 characters long',
-      });
-    }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
+        message: 'Password must be between 8 and 12 characters long',
       });
     }
 
@@ -227,9 +219,20 @@ exports.verifyEmailCode = async (req, res) => {
     user.emailVerificationAttempts = 0;
     await user.save();
 
+    const token = generateToken(user._id, user.role);
+
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully! You can now log in.',
+      message: 'Email verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      redirectTo: process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/dashboard` : '/'
     });
   } catch (error) {
     res.status(500).json({
@@ -437,10 +440,11 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    // Password validation: only enforce length between 8 and 12 characters
+    if (password.length < 8 || password.length > 12) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long',
+        message: 'Password must be between 8 and 12 characters long',
       });
     }
 
