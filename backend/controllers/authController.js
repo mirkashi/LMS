@@ -18,10 +18,10 @@ const findUserByVerificationToken = async (token) => {
 // User Registration
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, phone } = req.body;
 
     // Validation
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword || !phone) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields',
@@ -62,7 +62,7 @@ exports.register = async (req, res) => {
     }
 
     // Create new user
-    const user = new User({ name, email, password });
+    const user = new User({ name, email, password, phone });
     
     // Generate 6-digit verification code
     const verificationCode = user.generateVerificationCode();
@@ -317,12 +317,19 @@ exports.resendVerificationCode = async (req, res) => {
 // User Login
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, phone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a phone number',
       });
     }
 
@@ -351,6 +358,12 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Update phone number if provided
+    if (phone && user.phone !== phone) {
+      user.phone = phone;
+      await user.save();
+    }
+
     const token = generateToken(user._id, user.role);
 
     res.status(200).json({
@@ -363,6 +376,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
+        phone: user.phone,
       },
     });
   } catch (error) {

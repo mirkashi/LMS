@@ -15,6 +15,7 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
     email: '',
     password: '',
     confirmPassword: '',
+    phone: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -69,7 +70,7 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
       );
 
       setSuccess('✓ Registration successful! Please check your email to verify your account.');
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+      setFormData({ name: '', email: '', password: '', confirmPassword: '', phone: '' });
       setCurrentStep(1);
       onStepChange?.(1);
     } catch (err: any) {
@@ -231,6 +232,37 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
                 animate={focusedField === 'email' ? { scale: 1.1 } : { scale: 0.8 }}
               >
                 ✉️
+              </motion.span>
+            </motion.div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-200 mb-2.5 uppercase tracking-wider">
+              Phone Number
+            </label>
+            <motion.div
+              className="relative group"
+              onMouseEnter={() => setFocusedField('phone')}
+              onMouseLeave={() => setFocusedField(null)}
+            >
+              <motion.input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                onFocus={() => setFocusedField('phone')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="+1234567890"
+                required
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none transition-all duration-200 backdrop-blur-sm"
+                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
+              />
+              <motion.span
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl"
+                animate={focusedField === 'phone' ? { scale: 1.1 } : { scale: 0.8 }}
+              >
+                📱
               </motion.span>
             </motion.div>
           </div>

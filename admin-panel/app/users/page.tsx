@@ -354,6 +354,7 @@ export default function UsersPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">User</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Email</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Phone</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Role</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Joined</th>
@@ -377,6 +378,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{userData.email}</td>
+                    <td className="px-6 py-4 text-gray-600">{userData.phone || 'N/A'}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
                         userData.role === 'admin'

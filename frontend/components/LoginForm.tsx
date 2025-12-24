@@ -10,6 +10,7 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    phone: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -137,6 +138,43 @@ export default function LoginForm() {
             animate={focusedField === 'email' ? { scale: 1.1, rotate: 0 } : { scale: 0.8, rotate: -10 }}
           >
             ✉️
+          </motion.span>
+        </motion.div>
+      </motion.div>
+
+      {/* Phone Field */}
+      <motion.div variants={itemVariants}>
+        <label className="block text-sm font-semibold text-gray-200 mb-2.5 uppercase tracking-wider">
+          Phone Number
+        </label>
+        <motion.div
+          className="relative group"
+          onMouseEnter={() => setFocusedField('phone')}
+          onMouseLeave={() => setFocusedField(null)}
+        >
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/0 to-blue-500/0 rounded-lg blur opacity-0 group-hover:opacity-20 transition-opacity duration-300"
+            animate={focusedField === 'phone' ? { opacity: 0.3 } : { opacity: 0 }}
+          />
+          <motion.input
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            onFocus={() => setFocusedField('phone')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="+1234567890"
+            required
+            className="relative w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none transition-all duration-200 backdrop-blur-sm"
+            variants={inputVariants}
+            animate={focusedField === 'phone' ? 'focus' : 'blur'}
+            whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
+          />
+          <motion.span
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl"
+            animate={focusedField === 'phone' ? { scale: 1.1, rotate: 0 } : { scale: 0.8, rotate: -10 }}
+          >
+            📱
           </motion.span>
         </motion.div>
       </motion.div>

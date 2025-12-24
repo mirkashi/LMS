@@ -77,10 +77,12 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <Link href="/dashboard" className="flex items-center">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-bold text-sm">LMS</span>
               </div>
-              <span className={`text-xl font-bold text-gray-900 transition-opacity duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:inline'}`}>
+              <span className={`text-xl font-bold text-gray-900 ml-3 transition-all duration-200 whitespace-nowrap ${
+                isExpanded ? 'opacity-100 block' : 'opacity-0 w-0 overflow-hidden'
+              }`}>
                 Admin Panel
               </span>
             </Link>
@@ -105,10 +107,10 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
                 }`}
                 onClick={() => isMobile && setSidebarOpen(false)}
               >
-                <item.icon className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 ${isExpanded ? 'mr-3' : ''}`} />
+                <item.icon className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0 ${isExpanded ? 'mr-3' : ''}`} />
                 <span
-                  className={`font-medium whitespace-nowrap transition-opacity duration-200 ${
-                    isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:inline'
+                  className={`font-medium whitespace-nowrap transition-all duration-200 ${
+                    isExpanded ? 'opacity-100 block' : 'opacity-0 w-0 overflow-hidden'
                   }`}
                 >
                   {item.name}
@@ -121,14 +123,14 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
           <div className="border-t border-gray-200 p-4">
             <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'}`}>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-medium text-sm">
                     {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                   </span>
                 </div>
                 <div
-                  className={`ml-3 transition-opacity duration-200 ${
-                    isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none hidden lg:block'
+                  className={`ml-3 transition-all duration-200 whitespace-nowrap ${
+                    isExpanded ? 'opacity-100 block' : 'opacity-0 w-0 overflow-hidden'
                   }`}
                 >
                   <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin'}</p>

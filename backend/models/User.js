@@ -50,7 +50,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    phone: String,
+    phone: {
+      type: String,
+      required: [true, 'Please provide a phone number'],
+    },
     avatar: String,
     bio: String,
     enrolledCourses: [
