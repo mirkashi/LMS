@@ -4,37 +4,24 @@ const { logEmail } = require('./emailLogger');
 let transporter;
 
 async function initTransporter() {
-  const hasCreds = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
-  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+  const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASSWORD'];
+  const missing = required.filter((key) => !process.env[key]);
 
-  if (!hasCreds && isDev) {
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-    console.log('📧 Using Ethereal test SMTP: login at https://ethereal.email');
-    return;
-  }
-
-  if (!hasCreds) {
-    throw new Error('EMAIL_USER/EMAIL_PASSWORD are not set');
+  if (missing.length) {
+    throw new Error(`Missing SMTP env vars: ${missing.join(', ')}. Please provide your SMTP credentials.`);
   }
 
   transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_PORT || 587),
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
     secure: String(process.env.EMAIL_SECURE || 'false') === 'true',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
   });
+
+  console.log('📧 SMTP transporter configured with provided credentials');
 }
 
 // initialize immediately

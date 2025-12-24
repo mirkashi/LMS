@@ -69,7 +69,7 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
         formData
       );
 
-      setSuccess('✓ Registration successful! Please check your email to verify your account.');
+      setSuccess('✓ Registration successful! Please check your email for the 6-digit code and verify it.');
       setFormData({ name: '', email: '', password: '', confirmPassword: '', phone: '' });
       setCurrentStep(1);
       onStepChange?.(1);
@@ -136,6 +136,11 @@ export default function RegisterForm({ onStepChange }: RegisterFormProps) {
             <p className="text-green-200 text-sm font-medium flex items-center gap-2">
               {success}
             </p>
+            <div className="mt-3 text-xs text-green-100">
+              <Link href="/verify-code" className="font-semibold underline underline-offset-4">
+                Go to verification step
+              </Link>
+            </div>
           </motion.div>
         )}
       </motion.div>

@@ -13,6 +13,13 @@ router.get(
   adminController.getAllUsers
 );
 
+router.delete(
+  '/users/:userId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteUser
+);
+
 // Admin Profile
 router.get(
   '/profile',
