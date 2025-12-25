@@ -10,6 +10,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrolled, setEnrolled] = useState(false);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -101,6 +102,16 @@ export default function CourseDetail() {
                     className="w-full h-96 object-cover rounded-lg mb-6"
                   />
                 )}
+                {/* Video Player */}
+                {activeVideoUrl && (
+                  <div className="mb-6">
+                    <video
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${activeVideoUrl}`}
+                      controls
+                      className="w-full h-96 bg-black rounded-lg"
+                    />
+                  </div>
+                )}
                 <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
                 <p className="text-xl text-gray-600 mb-6">{course.description}</p>
 
@@ -132,7 +143,12 @@ export default function CourseDetail() {
                           {module.lessons?.map((lesson: any, lessonIdx: number) => (
                             <div
                               key={lessonIdx}
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer"
+                              onClick={() => {
+                                if (lesson.type === 'video' && enrolled && lesson.videoUrl) {
+                                  setActiveVideoUrl(lesson.videoUrl);
+                                }
+                              }}
                             >
                               <div className="flex items-center space-x-3">
                                 <span className="text-primary">

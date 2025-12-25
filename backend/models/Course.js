@@ -63,6 +63,7 @@ const courseSchema = new mongoose.Schema(
               enum: ['video', 'pdf', 'text'],
             },
             videoUrl: String,
+            videoDriveFileId: String,
             pdfUrl: String,
             content: String,
             duration: Number, // in minutes

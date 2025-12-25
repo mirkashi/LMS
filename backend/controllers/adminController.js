@@ -30,14 +30,34 @@ exports.createCourse = async (req, res) => {
       modules: [],
     });
 
-    // Handle image upload (frontend sends 'image', we store as 'thumbnail')
+    // Upload image and PDFs to Google Drive
+    const { uploadBufferToDrive } = require('../utils/googleDrive');
+
+    // Handle image upload (frontend sends 'image', we store Drive link)
     if (req.files && req.files.image && req.files.image[0]) {
-      course.thumbnail = `/uploads/${req.files.image[0].filename}`;
+      const img = req.files.image[0];
+      const uploaded = await uploadBufferToDrive({
+        buffer: img.buffer,
+        name: img.originalname,
+        mimeType: img.mimetype,
+        folderId: process.env.GOOGLE_DRIVE_IMAGE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+      });
+      // Prefer webContentLink if public, else store ID for streaming later
+      course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
     }
 
     // Handle PDF files - store as resources in a dedicated module
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
-      const pdfUrls = req.files.pdfFiles.map(file => `/uploads/${file.filename}`);
+      const pdfUrls = [];
+      for (const file of req.files.pdfFiles) {
+        const uploaded = await uploadBufferToDrive({
+          buffer: file.buffer,
+          name: file.originalname,
+          mimeType: file.mimetype,
+          folderId: process.env.GOOGLE_DRIVE_PDF_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+        });
+        pdfUrls.push(uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+      }
       
       // Create a module for course materials with unique identifier
       const MATERIALS_MODULE_TITLE = '__course_materials__';
@@ -479,7 +499,17 @@ exports.addLesson = async (req, res) => {
     };
 
     if (type === 'video' && req.files?.video) {
-      lesson.videoUrl = `/uploads/${req.files.video[0].filename}`;
+      const vid = req.files.video[0];
+      const { uploadBufferToDrive } = require('../utils/googleDrive');
+      const uploaded = await uploadBufferToDrive({
+        buffer: vid.buffer,
+        name: vid.originalname,
+        mimeType: vid.mimetype,
+        folderId: process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+      });
+      // Store drive id and a stream URL via backend
+      lesson.videoDriveFileId = uploaded.id;
+      lesson.videoUrl = `/api/media/drive/${uploaded.id}/stream`;
     }
 
     if (type === 'pdf' && req.files?.pdf) {
