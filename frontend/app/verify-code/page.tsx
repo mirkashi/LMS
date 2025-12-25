@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Link from 'next/link';
@@ -16,6 +16,14 @@ export default function VerifyCodePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Get email from session storage on mount
+  useEffect(() => {
+    const storedEmail = sessionStorage.getItem('registerEmail');
+    if (storedEmail) {
+      setFormData(prev => ({ ...prev, email: storedEmail }));
+    }
+  }, []);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -23,9 +31,11 @@ export default function VerifyCodePage() {
     setLoading(true);
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-code`, formData);
-      setSuccess('Email verified successfully! You can now log in.');
-      setTimeout(() => router.push('/login'), 1200);
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-code`, formData);
+      setSuccess('Email verified successfully!');
+      // Store email for password setup
+      sessionStorage.setItem('verifiedEmail', formData.email);
+      setTimeout(() => router.push('/set-password'), 1200);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Verification failed. Please check the code and try again.');
     } finally {

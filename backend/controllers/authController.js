@@ -15,16 +15,16 @@ const findUserByVerificationToken = async (token) => {
   });
 };
 
-// User Registration
+// User Registration (Step 1: Name, Email, Phone only - Password set later)
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword, phone } = req.body;
+    const { name, email, phone } = req.body;
 
-    // Validation
-    if (!name || !email || !password || !confirmPassword || !phone) {
+    // Validation - name, email, phone only (no password at this stage)
+    if (!name || !email || !phone) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields',
+        message: 'Please provide name, email, and phone',
       });
     }
 
@@ -37,21 +37,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match',
-      });
-    }
-
-    // Password validation: only enforce length between 8 and 12 characters
-    if (password.length < 8 || password.length > 12) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be between 8 and 12 characters long',
-      });
-    }
-
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -61,8 +46,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create new user
-    const user = new User({ name, email, password, phone });
+    // Create new user WITHOUT password (will be set later)
+    const user = new User({ name, email, phone });
     
     // Generate 6-digit verification code
     const verificationCode = user.generateVerificationCode();
@@ -487,6 +472,71 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Password reset failed',
+      error: error.message,
+    });
+  }
+};
+
+// Set Password After Email Verification
+exports.setPassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    // Password validation: only enforce length between 8 and 12 characters
+    if (password.length < 8 || password.length > 12) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be between 8 and 12 characters long',
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email must be verified first',
+      });
+    }
+
+    // Set the password
+    user.password = password;
+    await user.save();
+
+    // Generate token for auto-login
+    const token = generateToken(user._id, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password set successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      redirectTo: process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/dashboard` : '/dashboard'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set password',
       error: error.message,
     });
   }

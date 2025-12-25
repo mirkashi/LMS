@@ -8,7 +8,21 @@ async function initTransporter() {
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length) {
-    throw new Error(`Missing SMTP env vars: ${missing.join(', ')}. Please provide your SMTP credentials.`);
+    // Use Ethereal Email for testing if credentials missing
+    console.log('⚠️ Missing SMTP credentials, using Ethereal Email for testing...');
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    console.log('📧 Ethereal Email configured for testing');
+    console.log('📧 Preview URL: https://ethereal.email');
+    return;
   }
 
   transporter = nodemailer.createTransport({

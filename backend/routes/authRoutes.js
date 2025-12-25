@@ -57,6 +57,7 @@ router.post('/verify-email', authController.verifyEmail);
 router.get('/verify-email', authController.verifyEmail);
 router.post('/verify-code', verificationLimiter, authController.verifyEmailCode);
 router.post('/resend-code', resendLimiter, authController.resendVerificationCode);
+router.post('/set-password', authController.setPassword);
 router.post('/login', authController.login);
 router.post('/admin-login', authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
