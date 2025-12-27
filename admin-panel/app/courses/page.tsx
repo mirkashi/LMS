@@ -322,13 +322,18 @@ export default function CoursesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredCourses.map((course) => (
+                {filteredCourses.map((course) => {
+                  // Count PDF resources from materials module
+                  const materialsModule = course.modules?.find(m => m.title === '__course_materials__');
+                  const pdfCount = materialsModule?.lessons?.[0]?.resources?.length || 0;
+                  
+                  return (
                   <tr key={course._id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        {course.image && (
+                        {course.thumbnail && (
                           <AppImage
-                            path={course.image}
+                            path={course.thumbnail}
                             alt={course.title}
                             className="w-12 h-12 rounded-lg object-cover mr-4"
                           />
@@ -336,6 +341,9 @@ export default function CoursesPage() {
                         <div>
                           <div className="font-medium text-gray-900">{course.title}</div>
                           <div className="text-sm text-gray-500 line-clamp-1">{course.description}</div>
+                          {pdfCount > 0 && (
+                            <div className="text-xs text-blue-600 mt-1">📎 {pdfCount} file(s) attached</div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -374,7 +382,8 @@ export default function CoursesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>

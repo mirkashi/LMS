@@ -57,9 +57,17 @@ exports.createCourse = async (req, res) => {
         course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
       } catch (error) {
         console.error('Image upload error:', error);
+        // Check if Google Drive is not configured
+        if (error.message.includes('Google Drive client not configured')) {
+          return res.status(500).json({
+            success: false,
+            message: 'Google Drive is not properly configured. Please contact your administrator to set up Google Drive API credentials.',
+            error: error.message,
+          });
+        }
         return res.status(500).json({
           success: false,
-          message: 'Failed to upload course image. Please check Google Drive configuration.',
+          message: 'Failed to upload course image. Please try again.',
           error: error.message,
         });
       }
@@ -79,10 +87,18 @@ exports.createCourse = async (req, res) => {
           });
           pdfUrls.push(uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
         } catch (error) {
-          console.error('PDF upload error:', error);
+          console.error(`PDF upload error for ${file.originalname}:`, error);
+          // Check if Google Drive is not configured
+          if (error.message.includes('Google Drive client not configured')) {
+            return res.status(500).json({
+              success: false,
+              message: 'Google Drive is not properly configured. Please contact your administrator to set up Google Drive API credentials.',
+              error: error.message,
+            });
+          }
           return res.status(500).json({
             success: false,
-            message: `Failed to upload PDF file: ${file.originalname}`,
+            message: `Failed to upload PDF file: ${file.originalname}. Please try again.`,
             error: error.message,
           });
         }
