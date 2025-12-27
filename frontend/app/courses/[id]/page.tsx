@@ -169,7 +169,7 @@ export default function CourseDetail() {
                 {/* Course Content */}
                 <div className="mt-8">
                   <h2 className="text-2xl font-semibold mb-6">Course Content</h2>
-                  
+
                   {course.isEnrolled ? (
                     // Show full content for enrolled users
                     <div className="space-y-4">
@@ -199,6 +199,33 @@ export default function CourseDetail() {
                                     <p className="text-sm text-gray-600">
                                       {lesson.duration} minutes
                                     </p>
+                                    {/* Show download links for resources */}
+                                    {lesson.resources && lesson.resources.length > 0 && (
+                                      <div className="mt-2 space-y-1">
+                                        {lesson.resources.map((resource: any, resIdx: number) => (
+                                          <a
+                                            key={resIdx}
+                                            href={resource.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline text-sm block"
+                                          >
+                                            📎 {resource.name} ({(resource.size / 1024 / 1024).toFixed(2)} MB)
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {/* For legacy pdfUrl */}
+                                    {lesson.pdfUrl && (
+                                      <a
+                                        href={lesson.pdfUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline text-sm block mt-1"
+                                      >
+                                        📎 Download PDF
+                                      </a>
+                                    )}
                                   </div>
                                 </div>
                                 <span className="text-green-600 font-semibold">✓</span>
@@ -236,11 +263,75 @@ export default function CourseDetail() {
                       ))}
                     </div>
                   )}
+
+                  {/* Course Materials */}
+                  {course.isEnrolled && course.modules?.some((module: any) => module.title === '__course_materials__') && (
+                    <div className="mt-8">
+                      <h2 className="text-2xl font-semibold mb-6">Course Materials</h2>
+                      <div className="border rounded-lg p-6">
+                        <div className="space-y-3">
+                          {course.modules
+                            .filter((module: any) => module.title === '__course_materials__')
+                            .flatMap((module: any) => module.lessons || [])
+                            .flatMap((lesson: any) => lesson.resources || [])
+                            .map((resource: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-primary">📄</span>
+                                  <div>
+                                    <p className="font-medium">{resource.name}</p>
+                                    <p className="text-sm text-gray-600">
+                                      {(resource.size / 1024 / 1024).toFixed(2)} MB • {resource.type}
+                                    </p>
+                                  </div>
+                                </div>
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                                >
+                                  Download
+                                </a>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Instructor */}
                 {course.instructor && (
-                  <div classNaisEnrollmentDisabled()}
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-semibold mb-6">Instructor</h2>
+                    <div className="border rounded-lg p-6 bg-gray-50">
+                      <div className="flex items-center space-x-4">
+                        {course.instructor.avatar && (
+                          <img
+                            src={course.instructor.avatar}
+                            alt={course.instructor.name}
+                            className="w-16 h-16 rounded-full"
+                          />
+                        )}
+                        <div>
+                          <p className="font-semibold text-lg">{course.instructor.name}</p>
+                          <p className="text-gray-600">{course.instructor.email}</p>
+                          {course.instructor.bio && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              {course.instructor.bio}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!course.isEnrolled && (
+                  <button
+                    onClick={handleEnroll}
+                    disabled={isEnrollmentDisabled()}
                     className={`w-full py-3 rounded-lg font-semibold text-white mb-4 transition ${
                       enrollmentStatus === 'approved'
                         ? 'bg-green-500 cursor-not-allowed'
@@ -253,29 +344,21 @@ export default function CourseDetail() {
                   >
                     {getEnrollmentButtonText()}
                   </button>
+                )}
 
-                  {enrollmentStatus === 'pending' && (
-                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                      <p className="text-sm text-yellow-700">
-                        Your enrollment request is under review. You will be notified once approved.
-                      </p>
-                    </div>
-                  )}
+                {enrollmentStatus === 'pending' && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-sm text-yellow-700">
+                      Your enrollment request is under review. You will be notified once approved.
+                    </p>
+                  </div>
+                )}
 
-                  {enrollmentStatus === 'rejected' && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
-                      <p className="text-sm text-red-700">
-                        Your previous enrollment request was denied. You can submit a new request.
-                      </p>
-                    </div>
-                  )}className="text-gray-600">{course.instructor.email}</p>
-                        {course.instructor.bio && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            {course.instructor.bio}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                {enrollmentStatus === 'rejected' && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                    <p className="text-sm text-red-700">
+                      Your previous enrollment request was denied. You can submit a new request.
+                    </p>
                   </div>
                 )}
               </div>
@@ -289,14 +372,14 @@ export default function CourseDetail() {
 
                   <button
                     onClick={handleEnroll}
-                    disabled={enrolled}
+                    disabled={isEnrollmentDisabled()}
                     className={`w-full py-3 rounded-lg font-semibold text-white mb-4 transition ${
-                      enrolled
+                      enrollmentStatus === 'approved'
                         ? 'bg-green-500 cursor-not-allowed'
                         : 'bg-gradient-primary hover:shadow-lg'
                     }`}
                   >
-                    {enrolled ? '✓ Enrolled' : 'Enroll Now'}
+                    {enrollmentStatus === 'approved' ? '✓ Enrolled' : 'Enroll Now'}
                   </button>
 
                   <div className="space-y-4">

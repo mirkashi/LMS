@@ -67,7 +67,13 @@ const courseSchema = new mongoose.Schema(
             pdfUrl: String,
             content: String,
             duration: Number, // in minutes
-            resources: [String],
+            resources: [{
+              url: String,
+              name: String,
+              size: Number,
+              type: String,
+              driveFileId: String
+            }],
           },
         ],
       },

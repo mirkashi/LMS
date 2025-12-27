@@ -42,7 +42,24 @@ exports.createCourse = async (req, res) => {
     });
 
     // Upload files to Google Drive with proper error handling
-    const { uploadBufferToDrive } = require('../utils/googleDrive');
+    const { uploadBufferToDrive, createFolderIfNotExists } = require('../utils/googleDrive');
+
+    // Create course folder
+    let courseFolderId;
+    try {
+      const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+      if (!rootFolderId) {
+        throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
+      }
+      courseFolderId = await createFolderIfNotExists(`course-${course._id}`, rootFolderId);
+    } catch (error) {
+      console.error('Failed to create course folder:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create course folder. Please check Google Drive configuration.',
+        error: error.message,
+      });
+    }
 
     // Handle image upload
     if (req.files && req.files.image && req.files.image[0]) {
@@ -50,9 +67,9 @@ exports.createCourse = async (req, res) => {
         const img = req.files.image[0];
         const uploaded = await uploadBufferToDrive({
           buffer: img.buffer,
-          name: `course-${Date.now()}-${img.originalname}`,
+          name: `course-image-${Date.now()}-${img.originalname}`,
           mimeType: img.mimetype,
-          folderId: process.env.GOOGLE_DRIVE_IMAGE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+          folderId: courseFolderId
         });
         course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
       } catch (error) {
@@ -76,16 +93,22 @@ exports.createCourse = async (req, res) => {
     // Handle PDF files - store as resources in a dedicated module
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
       const pdfUrls = [];
-      
+
       for (const file of req.files.pdfFiles) {
         try {
           const uploaded = await uploadBufferToDrive({
             buffer: file.buffer,
             name: `course-material-${Date.now()}-${file.originalname}`,
             mimeType: file.mimetype,
-            folderId: process.env.GOOGLE_DRIVE_PDF_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+            folderId: courseFolderId
           });
-          pdfUrls.push(uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+          pdfUrls.push({
+            url: uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`,
+            name: file.originalname,
+            size: uploaded.size,
+            type: uploaded.mimeType,
+            driveFileId: uploaded.id
+          });
         } catch (error) {
           console.error(`PDF upload error for ${file.originalname}:`, error);
           // Check if Google Drive is not configured
@@ -546,12 +569,30 @@ exports.addLesson = async (req, res) => {
 
     if (type === 'video' && req.files?.video) {
       const vid = req.files.video[0];
-      const { uploadBufferToDrive } = require('../utils/googleDrive');
+      const { uploadBufferToDrive, createFolderIfNotExists } = require('../utils/googleDrive');
+
+      // Get or create course folder
+      let courseFolderId;
+      try {
+        const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!rootFolderId) {
+          throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
+        }
+        courseFolderId = await createFolderIfNotExists(`course-${courseId}`, rootFolderId);
+      } catch (error) {
+        console.error('Failed to create course folder:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to create course folder. Please check Google Drive configuration.',
+          error: error.message,
+        });
+      }
+
       const uploaded = await uploadBufferToDrive({
         buffer: vid.buffer,
-        name: vid.originalname,
+        name: `lesson-video-${Date.now()}-${vid.originalname}`,
         mimeType: vid.mimetype,
-        folderId: process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+        folderId: courseFolderId
       });
       // Store drive id and a stream URL via backend
       lesson.videoDriveFileId = uploaded.id;
