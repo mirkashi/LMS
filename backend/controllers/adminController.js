@@ -2,6 +2,7 @@ const Course = require('../models/Course');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Enrollment = require('../models/Enrollment');
 
 const { sendEmailChangeVerification, sendPasswordChangeNotification } = require('../utils/mailer');
 const crypto = require('crypto');
@@ -12,10 +13,20 @@ exports.createCourse = async (req, res) => {
     const { title, description, category, price, duration, level, syllabus } = req.body;
     const userId = req.user.userId;
 
-    if (!title || !description || !category || !price) {
+    // Validate required fields
+    if (!title || !description || !category || price === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields',
+        message: 'Please provide all required fields: title, description, category, and price',
+      });
+    }
+
+    // Validate price is a valid number
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid non-negative number',
       });
     }
 
@@ -23,43 +34,61 @@ exports.createCourse = async (req, res) => {
       title,
       description,
       category,
-      price,
+      price: parsedPrice,
       duration: duration || 0,
       level: level || 'beginner',
-      instructor: userId, // Use logged-in admin as instructor ID
+      instructor: userId,
       modules: [],
     });
 
-    // Upload image and PDFs to Google Drive
+    // Upload files to Google Drive with proper error handling
     const { uploadBufferToDrive } = require('../utils/googleDrive');
 
-    // Handle image upload (frontend sends 'image', we store Drive link)
+    // Handle image upload
     if (req.files && req.files.image && req.files.image[0]) {
-      const img = req.files.image[0];
-      const uploaded = await uploadBufferToDrive({
-        buffer: img.buffer,
-        name: img.originalname,
-        mimeType: img.mimetype,
-        folderId: process.env.GOOGLE_DRIVE_IMAGE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
-      });
-      // Prefer webContentLink if public, else store ID for streaming later
-      course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+      try {
+        const img = req.files.image[0];
+        const uploaded = await uploadBufferToDrive({
+          buffer: img.buffer,
+          name: `course-${Date.now()}-${img.originalname}`,
+          mimeType: img.mimetype,
+          folderId: process.env.GOOGLE_DRIVE_IMAGE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+        });
+        course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+      } catch (error) {
+        console.error('Image upload error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload course image. Please check Google Drive configuration.',
+          error: error.message,
+        });
+      }
     }
 
     // Handle PDF files - store as resources in a dedicated module
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
       const pdfUrls = [];
+      
       for (const file of req.files.pdfFiles) {
-        const uploaded = await uploadBufferToDrive({
-          buffer: file.buffer,
-          name: file.originalname,
-          mimeType: file.mimetype,
-          folderId: process.env.GOOGLE_DRIVE_PDF_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
-        });
-        pdfUrls.push(uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+        try {
+          const uploaded = await uploadBufferToDrive({
+            buffer: file.buffer,
+            name: `course-material-${Date.now()}-${file.originalname}`,
+            mimeType: file.mimetype,
+            folderId: process.env.GOOGLE_DRIVE_PDF_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+          });
+          pdfUrls.push(uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+        } catch (error) {
+          console.error('PDF upload error:', error);
+          return res.status(500).json({
+            success: false,
+            message: `Failed to upload PDF file: ${file.originalname}`,
+            error: error.message,
+          });
+        }
       }
       
-      // Create a module for course materials with unique identifier
+      // Create a module for course materials
       const MATERIALS_MODULE_TITLE = '__course_materials__';
       course.modules.push({
         title: MATERIALS_MODULE_TITLE,
@@ -83,6 +112,7 @@ exports.createCourse = async (req, res) => {
       data: course,
     });
   } catch (error) {
+    console.error('Course creation error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create course',
@@ -871,6 +901,181 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete product',
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// ENROLLMENT MANAGEMENT
+// ==========================================
+
+// Get All Enrollment Requests
+exports.getAllEnrollments = async (req, res) => {
+  try {
+    const { status, courseId } = req.query;
+    let filter = {};
+
+    if (status) filter.status = status;
+    if (courseId) filter.course = courseId;
+
+    const enrollments = await Enrollment.find(filter)
+      .populate('user', 'name email phone')
+      .populate('course', 'title price category')
+      .populate('reviewedBy', 'name email')
+      .sort({ requestedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: enrollments.length,
+      data: enrollments,
+    });
+  } catch (error) {
+    console.error('Failed to fetch enrollments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch enrollment requests',
+      error: error.message,
+    });
+  }
+};
+
+// Get Single Enrollment Request
+exports.getEnrollmentById = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+
+    const enrollment = await Enrollment.findById(enrollmentId)
+      .populate('user', 'name email phone avatar')
+      .populate('course', 'title description price category level')
+      .populate('reviewedBy', 'name email');
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment request not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: enrollment,
+    });
+  } catch (error) {
+    console.error('Failed to fetch enrollment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch enrollment request',
+      error: error.message,
+    });
+  }
+};
+
+// Approve Enrollment Request
+exports.approveEnrollment = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const adminId = req.user.userId;
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment request not found',
+      });
+    }
+
+    if (enrollment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve enrollment that is already ${enrollment.status}`,
+      });
+    }
+
+    // Update enrollment status
+    enrollment.status = 'approved';
+    enrollment.reviewedAt = new Date();
+    enrollment.reviewedBy = adminId;
+    await enrollment.save();
+
+    // Add user to course students
+    const course = await Course.findById(enrollment.course);
+    if (!course.students.includes(enrollment.user)) {
+      course.students.push(enrollment.user);
+      await course.save();
+    }
+
+    // Add course to user's enrolled courses
+    const user = await User.findById(enrollment.user);
+    if (!user.enrolledCourses.includes(enrollment.course)) {
+      user.enrolledCourses.push(enrollment.course);
+      await user.save();
+    }
+
+    // Populate enrollment details for response
+    await enrollment.populate('user', 'name email');
+    await enrollment.populate('course', 'title');
+
+    res.status(200).json({
+      success: true,
+      message: `Enrollment approved for ${enrollment.user.name} in ${enrollment.course.title}`,
+      data: enrollment,
+    });
+  } catch (error) {
+    console.error('Failed to approve enrollment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve enrollment request',
+      error: error.message,
+    });
+  }
+};
+
+// Reject Enrollment Request
+exports.rejectEnrollment = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user.userId;
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment request not found',
+      });
+    }
+
+    if (enrollment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reject enrollment that is already ${enrollment.status}`,
+      });
+    }
+
+    // Update enrollment status
+    enrollment.status = 'rejected';
+    enrollment.reviewedAt = new Date();
+    enrollment.reviewedBy = adminId;
+    enrollment.rejectionReason = reason || 'No reason provided';
+    await enrollment.save();
+
+    // Populate enrollment details for response
+    await enrollment.populate('user', 'name email');
+    await enrollment.populate('course', 'title');
+
+    res.status(200).json({
+      success: true,
+      message: `Enrollment rejected for ${enrollment.user.name} in ${enrollment.course.title}`,
+      data: enrollment,
+    });
+  } catch (error) {
+    console.error('Failed to reject enrollment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject enrollment request',
       error: error.message,
     });
   }

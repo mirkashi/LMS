@@ -29,6 +29,9 @@ export default function AdminNav({ user }: { user?: any }) {
             <Link href="/courses" className="hover:text-blue-600">
               Courses
             </Link>
+            <Link href="/enrollments" className="hover:text-blue-600">
+              Enrollments
+            </Link>
             <Link href="/products" className="hover:text-blue-600">
               Products
             </Link>

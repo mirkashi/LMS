@@ -9,18 +9,28 @@ export default function CourseDetail() {
   const courseId = params.id as string;
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [enrolled, setEnrolled] = useState(false);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
+        const token = localStorage.getItem('token');
+        const headers: any = {};
+        
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`,
+          { headers }
         );
         const data = await response.json();
         if (data.success) {
           setCourse(data.data);
+          setEnrollmentStatus(data.data.enrollmentStatus);
         }
       } catch (error) {
         console.error('Failed to fetch course:', error);
@@ -40,6 +50,7 @@ export default function CourseDetail() {
       return;
     }
 
+    setEnrolling(true);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/enroll`,
@@ -51,14 +62,40 @@ export default function CourseDetail() {
         }
       );
 
+      const data = await response.json();
+      
       if (response.ok) {
-        setEnrolled(true);
-        alert('Successfully enrolled in course!');
+        setEnrollmentStatus('pending');
+        alert('Enrollment request submitted! Please wait for admin approval.');
+      } else {
+        alert(data.message || 'Failed to submit enrollment request');
       }
     } catch (error) {
       console.error('Failed to enroll:', error);
-      alert('Failed to enroll in course');
+      alert('Failed to submit enrollment request');
+    } finally {
+      setEnrolling(false);
     }
+  };
+
+  const getEnrollmentButtonText = () => {
+    if (enrolling) return 'Submitting...';
+    if (!enrollmentStatus) return 'Request Enrollment';
+    
+    switch (enrollmentStatus) {
+      case 'pending':
+        return '⏳ Pending Approval';
+      case 'approved':
+        return '✓ Enrolled';
+      case 'rejected':
+        return '✗ Request Denied';
+      default:
+        return 'Request Enrollment';
+    }
+  };
+
+  const isEnrollmentDisabled = () => {
+    return enrolling || enrollmentStatus === 'pending' || enrollmentStatus === 'approved';
   };
 
   if (loading) {
@@ -132,57 +169,106 @@ export default function CourseDetail() {
                 {/* Course Content */}
                 <div className="mt-8">
                   <h2 className="text-2xl font-semibold mb-6">Course Content</h2>
-                  <div className="space-y-4">
-                    {course.modules?.map((module: any, idx: number) => (
-                      <div key={idx} className="border rounded-lg p-6">
-                        <h3 className="text-lg font-semibold mb-3">
-                          {module.title}
-                        </h3>
-                        <p className="text-gray-600 mb-4">{module.description}</p>
-                        <div className="space-y-2">
-                          {module.lessons?.map((lesson: any, lessonIdx: number) => (
-                            <div
-                              key={lessonIdx}
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer"
-                              onClick={() => {
-                                if (lesson.type === 'video' && enrolled && lesson.videoUrl) {
-                                  setActiveVideoUrl(lesson.videoUrl);
-                                }
-                              }}
-                            >
-                              <div className="flex items-center space-x-3">
-                                <span className="text-primary">
-                                  {lesson.type === 'video' ? '🎥' : lesson.type === 'pdf' ? '📄' : '📝'}
-                                </span>
-                                <div>
-                                  <p className="font-medium">{lesson.title}</p>
-                                  <p className="text-sm text-gray-600">
-                                    {lesson.duration} minutes
-                                  </p>
+                  
+                  {course.isEnrolled ? (
+                    // Show full content for enrolled users
+                    <div className="space-y-4">
+                      {course.modules?.map((module: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-6">
+                          <h3 className="text-lg font-semibold mb-3">
+                            {module.title}
+                          </h3>
+                          <p className="text-gray-600 mb-4">{module.description}</p>
+                          <div className="space-y-2">
+                            {module.lessons?.map((lesson: any, lessonIdx: number) => (
+                              <div
+                                key={lessonIdx}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
+                                onClick={() => {
+                                  if (lesson.type === 'video' && lesson.videoUrl) {
+                                    setActiveVideoUrl(lesson.videoUrl);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-primary">
+                                    {lesson.type === 'video' ? '🎥' : lesson.type === 'pdf' ? '📄' : '📝'}
+                                  </span>
+                                  <div>
+                                    <p className="font-medium">{lesson.title}</p>
+                                    <p className="text-sm text-gray-600">
+                                      {lesson.duration} minutes
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                              {enrolled && (
                                 <span className="text-green-600 font-semibold">✓</span>
-                              )}
-                            </div>
-                          ))}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Show preview for non-enrolled users
+                    <div className="space-y-4">
+                      {course.modules?.map((module: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-6 bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold mb-2">
+                                {module.title}
+                              </h3>
+                              <p className="text-gray-600 text-sm">{module.description}</p>
+                              <p className="text-sm text-gray-500 mt-2">
+                                {module.lessonCount || 0} lessons
+                              </p>
+                            </div>
+                            <div className="text-gray-400">
+                              🔒
+                            </div>
+                          </div>
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-sm text-blue-700">
+                              <strong>Enroll to access:</strong> Full course content, videos, and downloadable materials
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Instructor */}
                 {course.instructor && (
-                  <div className="mt-12 p-6 bg-gray-100 rounded-lg">
-                    <h3 className="text-xl font-semibold mb-4">About Instructor</h3>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center text-white text-2xl">
-                        👨‍🏫
-                      </div>
-                      <div>
-                        <p className="font-semibold">{course.instructor.name}</p>
-                        <p className="text-gray-600">{course.instructor.email}</p>
+                  <div classNaisEnrollmentDisabled()}
+                    className={`w-full py-3 rounded-lg font-semibold text-white mb-4 transition ${
+                      enrollmentStatus === 'approved'
+                        ? 'bg-green-500 cursor-not-allowed'
+                        : enrollmentStatus === 'pending'
+                        ? 'bg-yellow-500 cursor-not-allowed'
+                        : enrollmentStatus === 'rejected'
+                        ? 'bg-red-500 hover:bg-red-600'
+                        : 'bg-gradient-primary hover:shadow-lg'
+                    }`}
+                  >
+                    {getEnrollmentButtonText()}
+                  </button>
+
+                  {enrollmentStatus === 'pending' && (
+                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-sm text-yellow-700">
+                        Your enrollment request is under review. You will be notified once approved.
+                      </p>
+                    </div>
+                  )}
+
+                  {enrollmentStatus === 'rejected' && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                      <p className="text-sm text-red-700">
+                        Your previous enrollment request was denied. You can submit a new request.
+                      </p>
+                    </div>
+                  )}className="text-gray-600">{course.instructor.email}</p>
                         {course.instructor.bio && (
                           <p className="text-sm text-gray-600 mt-2">
                             {course.instructor.bio}

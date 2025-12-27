@@ -1,6 +1,7 @@
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const Enrollment = require('../models/Enrollment');
 
 // Get All Courses
 exports.getAllCourses = async (req, res) => {
@@ -8,8 +9,8 @@ exports.getAllCourses = async (req, res) => {
     const { category, level, search } = req.query;
     let filter = { isPublished: true };
 
-    if (category) filter.category = category;
-    if (level) filter.level = level;
+    if (category && category !== 'all') filter.category = category;
+    if (level && level !== 'all') filter.level = level;
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -27,6 +28,7 @@ exports.getAllCourses = async (req, res) => {
       data: courses,
     });
   } catch (error) {
+    console.error('Failed to fetch courses:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch courses',
@@ -39,13 +41,11 @@ exports.getAllCourses = async (req, res) => {
 exports.getCourseById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.userId; // Optional authentication
 
     const course = await Course.findById(id)
       .populate('instructor', 'name email avatar bio')
-      .populate('students', 'name email')
-      .populate({
-        path: 'modules.lessons',
-      });
+      .populate('students', 'name email');
 
     if (!course) {
       return res.status(404).json({
@@ -54,11 +54,62 @@ exports.getCourseById = async (req, res) => {
       });
     }
 
+    // Check if user is enrolled
+    let isEnrolled = false;
+    let enrollmentStatus = null;
+
+    if (userId) {
+      // Check if user has approved enrollment
+      const enrollment = await Enrollment.findOne({
+        user: userId,
+        course: id,
+      });
+
+      if (enrollment) {
+        enrollmentStatus = enrollment.status;
+        isEnrolled = enrollment.status === 'approved';
+      }
+    }
+
+    // Prepare course data with access control
+    const courseData = {
+      _id: course._id,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      price: course.price,
+      thumbnail: course.thumbnail,
+      duration: course.duration,
+      level: course.level,
+      rating: course.rating,
+      totalRatings: course.totalRatings,
+      instructor: course.instructor,
+      students: course.students,
+      isEnrolled,
+      enrollmentStatus,
+      createdAt: course.createdAt,
+    };
+
+    // If user is enrolled (approved), provide full course content
+    if (isEnrolled) {
+      courseData.modules = course.modules;
+    } else {
+      // Provide only preview/outline of modules without actual content
+      courseData.modules = course.modules.map((module) => ({
+        title: module.title,
+        description: module.description,
+        order: module.order,
+        lessonCount: module.lessons?.length || 0,
+        // Don't include actual lessons for non-enrolled users
+      }));
+    }
+
     res.status(200).json({
       success: true,
-      data: course,
+      data: courseData,
     });
   } catch (error) {
+    console.error('Failed to fetch course:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch course',
@@ -114,50 +165,86 @@ exports.postReview = async (req, res) => {
 
     // Check if user already reviewed
     const existingReview = await Review.findOne({
-      course: courseId,
       user: userId,
+      course: courseId,
     });
 
     if (existingReview) {
-      // Update existing review
-      existingReview.rating = rating;
-      existingReview.comment = comment;
-      await existingReview.save();
-
-      return res.status(200).json({
-        success: true,
-        message: 'Review updated successfully',
-        data: existingReview,
+      return res.status(400).json({
+        success: false,
+        message: 'You have already reviewed this course',
       });
     }
 
     const review = new Review({
-      course: courseId,
       user: userId,
+      course: courseId,
       rating,
       comment,
     });
 
     await review.save();
-
-    // Update course rating
-    const allReviews = await Review.find({ course: courseId });
-    const avgRating =
-      allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-    course.rating = avgRating;
-    course.totalRatings = allReviews.length;
-    await course.save();
-
     res.status(201).json({
       success: true,
-      message: 'Review posted successfully',
-      data: review,
+      message: 'Review submitted successfully',
+      review,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to post review',
+      message: 'Error submitting review',
+      error: error.message,
+    });
+  }
+};
+
+// Request Enrollment in Course
+exports.requestEnrollment = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.user.userId;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    // Check if enrollment request already exists
+    const existingEnrollment = await Enrollment.findOne({
+      user: userId,
+      course: courseId,
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json({
+        success: false,
+        message: `Enrollment request already ${existingEnrollment.status}`,
+        enrollmentStatus: existingEnrollment.status,
+      });
+    }
+
+    // Create new enrollment request
+    const enrollment = new Enrollment({
+      user: userId,
+      course: courseId,
+      status: 'pending',
+    });
+
+    await enrollment.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Enrollment request submitted successfully. Awaiting admin approval.',
+      data: enrollment,
+    });
+  } catch (error) {
+    console.error('Failed to request enrollment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to request enrollment',
       error: error.message,
     });
   }

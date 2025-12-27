@@ -160,4 +160,33 @@ router.get(
   adminController.getDashboardStats
 );
 
+// Enrollment management
+router.get(
+  '/enrollments',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getAllEnrollments
+);
+
+router.get(
+  '/enrollments/:enrollmentId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getEnrollmentById
+);
+
+router.put(
+  '/enrollments/:enrollmentId/approve',
+  authMiddleware,
+  adminMiddleware,
+  adminController.approveEnrollment
+);
+
+router.put(
+  '/enrollments/:enrollmentId/reject',
+  authMiddleware,
+  adminMiddleware,
+  adminController.rejectEnrollment
+);
+
 module.exports = router;

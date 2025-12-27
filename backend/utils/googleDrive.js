@@ -12,22 +12,34 @@ function getDriveClient() {
   ];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
-    throw new Error(`Missing Google API env vars: ${missing.join(', ')}`);
+    console.warn(`Missing Google API env vars: ${missing.join(', ')}`);
+    console.warn('Google Drive upload functionality will be disabled. Files will be stored locally.');
+    return null;
   }
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob'
-  );
-  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob'
+    );
+    oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
-  driveClient = google.drive({ version: 'v3', auth: oauth2Client });
-  return driveClient;
+    driveClient = google.drive({ version: 'v3', auth: oauth2Client });
+    return driveClient;
+  } catch (error) {
+    console.error('Failed to initialize Google Drive client:', error.message);
+    return null;
+  }
 }
 
 async function uploadBufferToDrive({ buffer, name, mimeType, folderId }) {
   const drive = getDriveClient();
+  
+  if (!drive) {
+    throw new Error('Google Drive client not configured. Please check environment variables.');
+  }
+
   const res = await drive.files.create({
     requestBody: {
       name,
@@ -49,7 +61,7 @@ async function uploadBufferToDrive({ buffer, name, mimeType, folderId }) {
       requestBody: { role: 'reader', type: 'anyone' }
     });
   } catch (e) {
-    // ignore permission errors (keeps private if not allowed)
+    console.warn('Failed to set file permissions:', e.message);
   }
 
   return {
@@ -66,17 +78,20 @@ async function uploadBufferToDrive({ buffer, name, mimeType, folderId }) {
 async function streamDriveFile(req, res) {
   const drive = getDriveClient();
   const { fileId } = req.params;
-  const range = req.headers.range;
+
+  if (!drive) {
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Google Drive not configured' 
+    });
+  }
 
   try {
-    // If range requested, set header to Drive request
     const driveRes = await drive.files.get({
       fileId,
       alt: 'media'
     }, { responseType: 'stream' });
 
-    // We won't be able to set partial content without reading headers from Drive.
-    // For simplicity, proxy the stream. For large videos, consider using webContentLink.
     res.setHeader('Content-Type', 'video/mp4');
     driveRes.data.on('error', (err) => {
       console.error('Drive stream error:', err);

@@ -40,8 +40,21 @@ export default function Courses() {
     setFilteredCourses(filtered);
   }, [selectedCategory, selectedLevel, courses]);
 
-  const categories = ['All', 'eBay Basics', 'Advanced Selling', 'Marketing', 'Dropshipping'];
-  const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+  const getCategoryLabel = (category: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'programming': 'Programming',
+      'design': 'Design',
+      'business': 'Business',
+      'marketing': 'Marketing',
+      'data-science': 'Data Science',
+      'language': 'Language',
+      'other': 'Other'
+    };
+    return categoryMap[category] || category;
+  };
+
+  const categories = ['all', 'programming', 'design', 'business', 'marketing', 'data-science', 'language', 'other'];
+  const levels = ['all', 'beginner', 'intermediate', 'advanced'];
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -70,11 +83,11 @@ export default function Courses() {
                       <input
                         type="radio"
                         name="category"
-                        checked={selectedCategory === cat.toLowerCase().replace(' ', '')}
-                        onChange={() => setSelectedCategory(cat.toLowerCase().replace(' ', ''))}
+                        checked={selectedCategory === cat}
+                        onChange={() => setSelectedCategory(cat)}
                         className="mr-2"
                       />
-                      <span>{cat}</span>
+                      <span className="capitalize">{cat === 'all' ? 'All' : getCategoryLabel(cat)}</span>
                     </label>
                   ))}
                 </div>
@@ -88,11 +101,11 @@ export default function Courses() {
                       <input
                         type="radio"
                         name="level"
-                        checked={selectedLevel === level.toLowerCase()}
-                        onChange={() => setSelectedLevel(level.toLowerCase())}
+                        checked={selectedLevel === level}
+                        onChange={() => setSelectedLevel(level)}
                         className="mr-2"
                       />
-                      <span>{level}</span>
+                      <span className="capitalize">{level}</span>
                     </label>
                   ))}
                 </div>
@@ -117,12 +130,19 @@ export default function Courses() {
                           src={course.thumbnail}
                           alt={course.title}
                           className="w-full h-48 object-cover"
+                          onError={(e) => {
+                            // Fallback if image fails to load
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Course+Image';
+                          }}
                         />
                       )}
                       <div className="p-6">
                         <div className="mb-2">
-                          <span className="text-sm bg-primary text-white px-3 py-1 rounded-full">
+                          <span className="text-sm bg-primary text-white px-3 py-1 rounded-full capitalize">
                             {course.level}
+                          </span>
+                          <span className="ml-2 text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full capitalize">
+                            {getCategoryLabel(course.category)}
                           </span>
                         </div>
                         <h3 className="text-lg font-semibold mb-2">{course.title}</h3>
@@ -147,7 +167,7 @@ export default function Courses() {
                         </div>
                         <Link
                           href={`/courses/${course._id}`}
-                          className="w-full py-2 bg-gradient-primary text-white rounded-lg font-semibold hover:shadow-lg transition text-center text-sm"
+                          className="block w-full py-2 bg-gradient-primary text-white rounded-lg font-semibold hover:shadow-lg transition text-center text-sm"
                         >
                           View Details
                         </Link>
