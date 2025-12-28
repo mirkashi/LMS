@@ -110,7 +110,7 @@ exports.createCourse = async (req, res) => {
             driveFileId: uploaded.id
           });
         } catch (error) {
-          console.error(`PDF upload error for ${file.originalname}:`, error);
+          console.error('PDF upload error for %s:', file.originalname, error);
           // Check if Google Drive is not configured
           if (error.message.includes('Google Drive client not configured')) {
             return res.status(500).json({
