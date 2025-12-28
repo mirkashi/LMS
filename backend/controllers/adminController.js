@@ -973,8 +973,12 @@ exports.getAllEnrollments = async (req, res) => {
     const { status, courseId } = req.query;
     let filter = {};
 
-    if (status) filter.status = status;
-    if (courseId) filter.course = courseId;
+    if (typeof status === 'string' && status) {
+      filter.status = status;
+    }
+    if (typeof courseId === 'string' && courseId) {
+      filter.course = courseId;
+    }
 
     const enrollments = await Enrollment.find(filter)
       .populate('user', 'name email phone')
