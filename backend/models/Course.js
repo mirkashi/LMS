@@ -26,6 +26,11 @@ const courseSchema = new mongoose.Schema(
       min: 0,
     },
     thumbnail: String,
+    thumbnailStorageType: {
+      type: String,
+      enum: ['local', 'google-drive'],
+      default: 'google-drive',
+    },
     duration: Number, // in hours
     level: {
       type: String,
@@ -64,6 +69,11 @@ const courseSchema = new mongoose.Schema(
             },
             videoUrl: String,
             videoDriveFileId: String,
+            videoStorageType: {
+              type: String,
+              enum: ['local', 'google-drive'],
+              default: 'google-drive',
+            },
             pdfUrl: String,
             content: String,
             duration: Number, // in minutes
@@ -72,7 +82,12 @@ const courseSchema = new mongoose.Schema(
               name: String,
               size: Number,
               type: String,
-              driveFileId: String
+              driveFileId: String,
+              storageType: {
+                type: String,
+                enum: ['local', 'google-drive'],
+                default: 'google-drive',
+              }
             }],
           },
         ],

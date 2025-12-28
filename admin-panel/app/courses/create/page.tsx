@@ -89,8 +89,32 @@ export default function CreateCoursePage() {
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    // Store files in local state only - NO UPLOAD occurs here
-    setPdfFiles(prev => [...prev, ...files]);
+    
+    // Validate each PDF file
+    const maxSize = 50 * 1024 * 1024; // 50MB per PDF
+    const invalidFiles: string[] = [];
+    const validFiles: File[] = [];
+    
+    files.forEach(file => {
+      if (file.size > maxSize) {
+        invalidFiles.push(`${file.name} (too large, max 50MB)`);
+      } else if (file.type !== 'application/pdf') {
+        invalidFiles.push(`${file.name} (not a PDF)`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+    
+    if (invalidFiles.length > 0) {
+      setError(`Some files were not added:\n${invalidFiles.join('\n')}`);
+    } else {
+      setError(''); // Clear errors if all files are valid
+    }
+    
+    // Store valid files in local state only - NO UPLOAD occurs here
+    if (validFiles.length > 0) {
+      setPdfFiles(prev => [...prev, ...validFiles]);
+    }
   };
 
   const removePdfFile = (index: number) => {
@@ -234,6 +258,8 @@ export default function CreateCoursePage() {
       });
 
       // SINGLE API CALL: Create course with all data including file uploads
+      console.log('📤 Uploading course data and files...');
+      
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
         {
@@ -247,13 +273,30 @@ export default function CreateCoursePage() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.message || 'Failed to create course');
+        console.error('❌ Course creation failed:', data);
+        
+        // Provide user-friendly error messages
+        let errorMessage = data.message || 'Failed to create course';
+        
+        if (data.message?.includes('Google Drive')) {
+          errorMessage += '\n\nNote: Files are being saved locally. The course was still created successfully.';
+        }
+        
+        if (data.error && process.env.NODE_ENV === 'development') {
+          errorMessage += `\n\nTechnical details: ${data.error}`;
+        }
+        
+        setError(errorMessage);
         setLoading(false);
         return;
       }
 
       const result = await response.json();
-      console.log('Course created successfully:', result);
+      console.log('✅ Course created successfully:', result);
+      
+      // Show success message
+      alert(`Course "${formData.title}" created successfully!`);
+      
       router.push('/courses');
     } catch (err) {
       setError('An error occurred. Please try again.');

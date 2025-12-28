@@ -92,23 +92,24 @@ exports.createCourse = async (req, res) => {
     });
 
     // Upload files to Google Drive with proper error handling
-    const { uploadBufferToDrive, createFolderIfNotExists } = require('../utils/googleDrive');
+    const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
 
-    // Create course folder
-    let courseFolderId;
-    try {
-      const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-      if (!rootFolderId) {
-        throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
+    // Create course folder (only if Google Drive is configured)
+    let courseFolderId = null;
+    const driveConfigured = isGoogleDriveConfigured();
+    
+    if (driveConfigured) {
+      try {
+        const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (rootFolderId) {
+          courseFolderId = await createFolderIfNotExists(`course-${course._id}`, rootFolderId);
+          console.log(`📁 Created Google Drive folder for course: ${course._id}`);
+        }
+      } catch (error) {
+        console.warn('Failed to create course folder on Google Drive:', error.message);
+        console.warn('Will save files locally instead');
+        // Don't return error - continue with local storage
       }
-      courseFolderId = await createFolderIfNotExists(`course-${course._id}`, rootFolderId);
-    } catch (error) {
-      console.error('Failed to create course folder:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create course folder. Please check Google Drive configuration.',
-        error: error.message,
-      });
     }
 
     // Handle image upload
@@ -121,17 +122,14 @@ exports.createCourse = async (req, res) => {
           mimeType: img.mimetype,
           folderId: courseFolderId
         });
-        course.thumbnail = uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+        
+        // Store the URL based on storage type
+        course.thumbnail = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+        course.thumbnailStorageType = uploaded.storageType || 'google-drive';
+        
+        console.log(`✅ Course image uploaded successfully (${uploaded.storageType})`);
       } catch (error) {
         console.error('Image upload error:', error);
-        // Check if Google Drive is not configured
-        if (error.message.includes('Google Drive client not configured')) {
-          return res.status(500).json({
-            success: false,
-            message: 'Google Drive is not properly configured. Please contact your administrator to set up Google Drive API credentials.',
-            error: error.message,
-          });
-        }
         return res.status(500).json({
           success: false,
           message: 'Failed to upload course image. Please try again.',
@@ -152,23 +150,19 @@ exports.createCourse = async (req, res) => {
             mimeType: file.mimetype,
             folderId: courseFolderId
           });
+          
           pdfUrls.push({
-            url: uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`,
+            url: uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`,
             name: file.originalname,
             size: uploaded.size,
-            type: uploaded.mimeType,
-            driveFileId: uploaded.id
+            type: file.mimetype,
+            driveFileId: uploaded.id,
+            storageType: uploaded.storageType || 'google-drive'
           });
+          
+          console.log(`✅ PDF uploaded: ${file.originalname} (${uploaded.storageType})`);
         } catch (error) {
           console.error('PDF upload error for %s:', file.originalname, error);
-          // Check if Google Drive is not configured
-          if (error.message.includes('Google Drive client not configured')) {
-            return res.status(500).json({
-              success: false,
-              message: 'Google Drive is not properly configured. Please contact your administrator to set up Google Drive API credentials.',
-              error: error.message,
-            });
-          }
           return res.status(500).json({
             success: false,
             message: `Failed to upload PDF file: ${file.originalname}. Please try again.`,
@@ -191,6 +185,8 @@ exports.createCourse = async (req, res) => {
           resources: pdfUrls
         }]
       });
+      
+      console.log(`✅ Created course materials module with ${pdfUrls.length} PDF(s)`);
     }
 
     await course.save();
@@ -619,34 +615,51 @@ exports.addLesson = async (req, res) => {
 
     if (type === 'video' && req.files?.video) {
       const vid = req.files.video[0];
-      const { uploadBufferToDrive, createFolderIfNotExists } = require('../utils/googleDrive');
+      const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
 
-      // Get or create course folder
-      let courseFolderId;
-      try {
-        const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-        if (!rootFolderId) {
-          throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
+      // Get or create course folder (only if Google Drive is configured)
+      let courseFolderId = null;
+      const driveConfigured = isGoogleDriveConfigured();
+      
+      if (driveConfigured) {
+        try {
+          const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+          if (rootFolderId) {
+            courseFolderId = await createFolderIfNotExists(`course-${courseId}`, rootFolderId);
+          }
+        } catch (error) {
+          console.warn('Failed to create course folder on Google Drive:', error.message);
+          console.warn('Will save video locally instead');
         }
-        courseFolderId = await createFolderIfNotExists(`course-${courseId}`, rootFolderId);
+      }
+
+      try {
+        const uploaded = await uploadBufferToDrive({
+          buffer: vid.buffer,
+          name: `lesson-video-${Date.now()}-${vid.originalname}`,
+          mimeType: vid.mimetype,
+          folderId: courseFolderId
+        });
+        
+        // Store based on storage type
+        lesson.videoDriveFileId = uploaded.id;
+        lesson.videoStorageType = uploaded.storageType || 'google-drive';
+        
+        if (uploaded.storageType === 'local') {
+          lesson.videoUrl = uploaded.url; // Direct URL for local files
+        } else {
+          lesson.videoUrl = `/api/media/drive/${uploaded.id}/stream`; // Stream URL for Drive
+        }
+        
+        console.log(`✅ Video uploaded successfully: ${vid.originalname} (${uploaded.storageType})`);
       } catch (error) {
-        console.error('Failed to create course folder:', error);
+        console.error('Video upload error:', error);
         return res.status(500).json({
           success: false,
-          message: 'Failed to create course folder. Please check Google Drive configuration.',
+          message: 'Failed to upload video. Please try again.',
           error: error.message,
         });
       }
-
-      const uploaded = await uploadBufferToDrive({
-        buffer: vid.buffer,
-        name: `lesson-video-${Date.now()}-${vid.originalname}`,
-        mimeType: vid.mimetype,
-        folderId: courseFolderId
-      });
-      // Store drive id and a stream URL via backend
-      lesson.videoDriveFileId = uploaded.id;
-      lesson.videoUrl = `/api/media/drive/${uploaded.id}/stream`;
     }
 
     if (type === 'pdf' && req.files?.pdf) {

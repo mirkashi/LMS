@@ -58,6 +58,8 @@ export default function UploadVideoPage() {
       formData.append('type', 'video');
       if (video) formData.append('video', video);
 
+      console.log('📤 Uploading video lesson...');
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/courses/${selectedCourse}/modules/${selectedModuleIndex}/lessons`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -66,10 +68,24 @@ export default function UploadVideoPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || 'Upload failed');
+        console.error('❌ Video upload failed:', data);
+        
+        let errorMessage = data.message || 'Upload failed';
+        if (data.error && process.env.NODE_ENV === 'development') {
+          errorMessage += `\n\nTechnical details: ${data.error}`;
+        }
+        
+        setError(errorMessage);
       } else {
-        setSuccess('Video lesson uploaded successfully');
-        setTitle(''); setDescription(''); setVideo(null);
+        console.log('✅ Video lesson uploaded successfully');
+        setSuccess('Video lesson uploaded successfully! The video is now available in the course.');
+        setTitle(''); 
+        setDescription(''); 
+        setVideo(null);
+        
+        // Clear the file input
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
       }
     } catch (err: any) {
       setError('Upload failed');
@@ -115,7 +131,38 @@ export default function UploadVideoPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Video File</label>
-            <input type="file" accept="video/*" onChange={e => setVideo(e.target.files?.[0] || null)} />
+            <input 
+              type="file" 
+              accept="video/mp4,video/quicktime,video/x-msvideo,video/*" 
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // Validate file size (max 1GB)
+                  const maxSize = 1024 * 1024 * 1024; // 1GB
+                  if (file.size > maxSize) {
+                    setError('Video file is too large. Maximum size is 1GB.');
+                    setVideo(null);
+                    return;
+                  }
+                  
+                  // Validate file type
+                  const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/avi', 'video/webm'];
+                  if (!allowedTypes.includes(file.type) && !file.type.startsWith('video/')) {
+                    setError('Invalid video format. Please upload MP4, MOV, or AVI videos.');
+                    setVideo(null);
+                    return;
+                  }
+                  
+                  setError(''); // Clear errors
+                  setVideo(file);
+                }
+              }} 
+            />
+            {video && (
+              <p className="text-sm text-green-600 mt-2">
+                ✓ {video.name} ({(video.size / (1024 * 1024)).toFixed(2)} MB)
+              </p>
+            )}
           </div>
 
           <button disabled={loading || !selectedCourse || !title || !video} className="bg-blue-600 text-white px-4 py-2 rounded">
