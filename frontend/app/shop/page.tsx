@@ -20,8 +20,8 @@ export default function Shop() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Placeholder image URL lives here
-  const heroBackground = '';
-  const itemsPerPage = 12;
+  const heroBackground = 'https://images.pexels.com/photos/5625070/pexels-photo-5625070.jpeg';
+  const itemsPerPage = 15;
 
   useEffect(() => {
     const fetchProducts = async () => {

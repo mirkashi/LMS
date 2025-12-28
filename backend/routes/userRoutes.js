@@ -108,9 +108,38 @@ router.get('/profile/avatar/:file', (req, res) => {
 
 // --- Wishlist Routes ---
 
-// Get Wishlist
-router.get('/wishlist', authMiddleware, async (req, res) => {
+// Optional auth middleware (allows both authenticated and guest users)
+const optionalAuth = (req, res, next) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        const token = parts[1];
+        const { verifyToken } = require('../utils/jwt');
+        const decoded = verifyToken(token);
+        if (decoded) {
+          req.user = {
+            id: decoded.id || decoded.userId,
+            userId: decoded.userId || decoded.id,
+            role: decoded.role
+          };
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
+// Get Wishlist
+router.get('/wishlist', optionalAuth, async (req, res) => {
+  try {
+    // If user is not authenticated, return empty wishlist
+    if (!req.user) {
+      return res.json({ success: true, data: [] });
+    }
     const user = await User.findById(req.user.userId).populate('wishlist');
     res.json({ success: true, data: user.wishlist });
   } catch (error) {

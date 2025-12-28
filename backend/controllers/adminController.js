@@ -7,6 +7,56 @@ const Enrollment = require('../models/Enrollment');
 const { sendEmailChangeVerification, sendPasswordChangeNotification } = require('../utils/mailer');
 const crypto = require('crypto');
 
+// Get All Courses (Admin) - includes unpublished courses
+exports.getAllCourses = async (req, res) => {
+  try {
+    const { category, level, search, status } = req.query;
+    let filter = {};
+
+    // Filter by category
+    if (category && category !== 'all') {
+      filter.category = category;
+    }
+
+    // Filter by level
+    if (level && level !== 'all') {
+      filter.level = level;
+    }
+
+    // Filter by publish status
+    if (status === 'published') {
+      filter.isPublished = true;
+    } else if (status === 'draft') {
+      filter.isPublished = false;
+    }
+
+    // Search filter
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const courses = await Course.find(filter)
+      .populate('instructor', 'name email avatar')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: courses.length,
+      data: courses,
+    });
+  } catch (error) {
+    console.error('Failed to fetch courses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch courses',
+      error: error.message,
+    });
+  }
+};
+
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {

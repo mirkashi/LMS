@@ -34,7 +34,7 @@ export default function CoursesPage() {
         setUser(user);
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/courses`,
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -46,6 +46,8 @@ export default function CoursesPage() {
           const data = await response.json();
           setCourses(data.data || []);
           setFilteredCourses(data.data || []);
+        } else {
+          console.error('Failed to fetch courses:', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);

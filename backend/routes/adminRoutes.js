@@ -43,6 +43,13 @@ router.post(
 );
 
 // Course management
+router.get(
+  '/courses',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getAllCourses
+);
+
 router.post(
   '/courses',
   authMiddleware,
