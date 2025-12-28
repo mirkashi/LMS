@@ -187,8 +187,19 @@ export default function Checkout() {
       
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+        
+        // Handle specific error codes
+        if (error.response?.data?.errorCode === 'EMPTY_CART') {
+          errorMessage = 'Your cart is empty. Please add items before checking out.';
+          setTimeout(() => router.push('/shop'), 2000);
+        } else if (error.response?.data?.errorCode === 'INVALID_TOKEN') {
+          errorMessage = 'Your session has expired. Please log in again.';
+          localStorage.removeItem('token');
+          setTimeout(() => router.push('/login?redirect=/checkout'), 2000);
+        }
       } else if (error.response?.status === 401) {
         errorMessage = 'Your session has expired. Please log in again.';
+        localStorage.removeItem('token');
         setTimeout(() => router.push('/login?redirect=/checkout'), 2000);
       } else if (error.response?.status === 400) {
         errorMessage = 'Invalid order information. Please check your details and try again.';

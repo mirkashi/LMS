@@ -12,7 +12,11 @@ exports.createOrder = async (req, res) => {
 
     // Validate required fields
     if (!items || items.length === 0) {
-      return res.status(400).json({ success: false, message: 'No order items' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot create order with empty cart. Please add items to your cart first.',
+        errorCode: 'EMPTY_CART'
+      });
     }
 
     if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {

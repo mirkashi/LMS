@@ -81,6 +81,13 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated) {
       try {
         const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found');
+          alert('Please log in to add items to cart');
+          window.location.href = '/login';
+          return;
+        }
+        
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/cart`, {
           method: 'POST',
           headers: { 
@@ -89,12 +96,28 @@ export function ShopProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({ productId: product._id, quantity })
         });
+        
+        if (res.status === 401) {
+          const data = await res.json();
+          console.error('Authentication error:', data.message);
+          alert('Your session has expired. Please log in again.');
+          localStorage.removeItem('token');
+          setIsAuthenticated(false);
+          window.location.href = '/login';
+          return;
+        }
+        
         if (res.ok) {
           const data = await res.json();
           setCart(data.data);
+        } else {
+          const data = await res.json();
+          console.error('Error adding to cart:', data.message);
+          alert(`Failed to add to cart: ${data.message}`);
         }
       } catch (error) {
         console.error('Error adding to cart:', error);
+        alert('Failed to add item to cart. Please try again.');
       }
     } else {
       const newCart = [...cart];
@@ -164,10 +187,28 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated) {
       try {
         const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found');
+          alert('Please log in to add items to wishlist');
+          window.location.href = '/login';
+          return;
+        }
+        
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/wishlist/${product._id}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` }
         });
+        
+        if (res.status === 401) {
+          const data = await res.json();
+          console.error('Authentication error:', data.message);
+          alert('Your session has expired. Please log in again.');
+          localStorage.removeItem('token');
+          setIsAuthenticated(false);
+          window.location.href = '/login';
+          return;
+        }
+        
         if (res.ok) {
           const data = await res.json();
           // Re-fetch populated wishlist
@@ -178,9 +219,14 @@ export function ShopProvider({ children }: { children: ReactNode }) {
             const wishlistData = await wishlistRes.json();
             setWishlist(wishlistData.data);
           }
+        } else {
+          const data = await res.json();
+          console.error('Error adding to wishlist:', data.message);
+          alert(`Failed to add to wishlist: ${data.message}`);
         }
       } catch (error) {
         console.error('Error adding to wishlist:', error);
+        alert('Failed to add item to wishlist. Please try again.');
       }
     } else {
       if (!wishlist.find(p => p._id === product._id)) {

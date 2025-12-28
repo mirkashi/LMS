@@ -8,6 +8,7 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'No authorization header provided',
+        errorCode: 'NO_AUTH_HEADER'
       });
     }
 
@@ -16,6 +17,7 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid authorization header format. Use: Bearer <token>',
+        errorCode: 'INVALID_AUTH_FORMAT'
       });
     }
 
@@ -25,6 +27,7 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'No token provided',
+        errorCode: 'NO_TOKEN'
       });
     }
 
@@ -33,7 +36,8 @@ const authMiddleware = (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired token',
+        message: 'Invalid or expired token. Please log in again.',
+        errorCode: 'INVALID_TOKEN'
       });
     }
 
@@ -50,6 +54,7 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({
       success: false,
       message: 'Authentication error',
+      errorCode: 'AUTH_ERROR',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
