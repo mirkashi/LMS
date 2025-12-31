@@ -162,7 +162,7 @@ export default function CourseDetail() {
                     </span>
                   </div>
                   <span className="text-gray-600">
-                    {course.students?.length || 0} students enrolled
+                    {Array.isArray(course.students) ? course.students.length : 0} students enrolled
                   </span>
                 </div>
 
@@ -310,13 +310,13 @@ export default function CourseDetail() {
                         {course.instructor.avatar && (
                           <img
                             src={course.instructor.avatar}
-                            alt={course.instructor.name}
+                            alt={course.instructor.name || 'Instructor'}
                             className="w-16 h-16 rounded-full"
                           />
                         )}
                         <div>
-                          <p className="font-semibold text-lg">{course.instructor.name}</p>
-                          <p className="text-gray-600">{course.instructor.email}</p>
+                          <p className="font-semibold text-lg">{course.instructor.name || 'Unknown Instructor'}</p>
+                          <p className="text-gray-600">{course.instructor.email || ''}</p>
                           {course.instructor.bio && (
                             <p className="text-sm text-gray-600 mt-2">
                               {course.instructor.bio}

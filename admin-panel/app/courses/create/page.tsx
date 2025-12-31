@@ -1,265 +1,312 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import Link from 'next/link';
-import { ArrowLeftIcon, CloudArrowUpIcon, CheckCircleIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import {
+  DocumentTextIcon,
+  PhotoIcon,
+  VideoCameraIcon,
+  CloudArrowUpIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  InformationCircleIcon,
+  XMarkIcon,
+  PlusIcon,
+  TrashIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  DocumentIcon,
+} from '@heroicons/react/24/outline';
+
+interface FormData {
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  level: string;
+  price: number;
+  duration: number;
+  language: string;
+  prerequisites: string;
+  whatYouWillLearn: string[];
+  targetAudience: string;
+  thumbnail: File | null;
+  video: File | null;
+  documents: File[];
+  isPublished: boolean;
+  accessLevel: 'free' | 'paid' | 'premium';
+  scheduledPublishDate: string;
+}
 
 export default function CreateCoursePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     category: '',
-    price: '',
-    instructor: '',
-    duration: '',
-    syllabus: '',
+    tags: [],
+    level: 'beginner',
+    price: 0,
+    duration: 0,
+    language: 'English',
+    prerequisites: '',
+    whatYouWillLearn: [''],
+    targetAudience: '',
+    thumbnail: null,
+    video: null,
+    documents: [],
+    isPublished: false,
+    accessLevel: 'paid',
+    scheduledPublishDate: '',
   });
-  const [image, setImage] = useState<File | null>(null);
-  const [pdfFiles, setPdfFiles] = useState<File[]>([]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [dragActive, setDragActive] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({
+    thumbnail: 0,
+    video: 0,
+    documents: 0,
+  });
+  const [dragActive, setDragActive] = useState({
+    thumbnail: false,
+    video: false,
+    documents: false,
+  });
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+  const thumbnailRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+  const documentsRef = useRef<HTMLInputElement>(null);
 
-  const totalSteps = 4;
+  const steps = [
+    { number: 1, title: 'Basic Info', icon: DocumentTextIcon },
+    { number: 2, title: 'Media Upload', icon: PhotoIcon },
+    { number: 3, title: 'Advanced Settings', icon: InformationCircleIcon },
+  ];
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
     const userData = localStorage.getItem('adminUser');
-
-    if (!token || !userData) {
+    if (!userData) {
       router.push('/login');
       return;
     }
+    setUser(JSON.parse(userData));
 
-    const user = JSON.parse(userData);
-    setUser(user);
-
-    // Development mode: Monitor for unexpected API calls
-    let cleanup = () => {}; // Default no-op cleanup
-    
-    if (process.env.NODE_ENV === 'development') {
-      const originalFetch = window.fetch;
-      window.fetch = function(...args) {
-        const url = args[0]?.toString() || '';
-        // Log API calls during development (except final submit which happens in handleSubmit)
-        if (url.includes('/admin/courses') && !loading) {
-          console.warn('⚠️ Development Warning: API call detected while not in submission state');
-          console.warn('URL:', url);
-          console.warn('Current step:', currentStep);
-          console.warn('Loading state:', loading);
-        }
-        return originalFetch.apply(this, args);
-      };
-      
-      cleanup = () => {
-        window.fetch = originalFetch;
-      };
-    }
-    
-    return cleanup;
-  }, [router, currentStep, loading]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Store file in local state only - NO UPLOAD occurs here
-      setImage(file);
-      // Create local preview using FileReader API - NO server upload
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    
-    // Validate each PDF file
-    const maxSize = 50 * 1024 * 1024; // 50MB per PDF
-    const invalidFiles: string[] = [];
-    const validFiles: File[] = [];
-    
-    files.forEach(file => {
-      if (file.size > maxSize) {
-        invalidFiles.push(`${file.name} (too large, max 50MB)`);
-      } else if (file.type !== 'application/pdf') {
-        invalidFiles.push(`${file.name} (not a PDF)`);
-      } else {
-        validFiles.push(file);
+    // Load draft from localStorage
+    const draft = localStorage.getItem('courseDraft');
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft);
+        setFormData(prev => ({ ...prev, ...parsedDraft }));
+      } catch (e) {
+        console.error('Failed to load draft');
       }
-    });
-    
-    if (invalidFiles.length > 0) {
-      setError(`Some files were not added:\n${invalidFiles.join('\n')}`);
-    } else {
-      setError(''); // Clear errors if all files are valid
     }
-    
-    // Store valid files in local state only - NO UPLOAD occurs here
-    if (validFiles.length > 0) {
-      setPdfFiles(prev => [...prev, ...validFiles]);
+  }, [router]);
+
+  // Auto-save draft
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.title || formData.description) {
+        setAutoSaveStatus('saving');
+        localStorage.setItem('courseDraft', JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          tags: formData.tags,
+          level: formData.level,
+          price: formData.price,
+          duration: formData.duration,
+          language: formData.language,
+          prerequisites: formData.prerequisites,
+          whatYouWillLearn: formData.whatYouWillLearn,
+          targetAudience: formData.targetAudience,
+          accessLevel: formData.accessLevel,
+          scheduledPublishDate: formData.scheduledPublishDate,
+        }));
+        setTimeout(() => setAutoSaveStatus('saved'), 500);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData]);
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (step === 1) {
+      if (!formData.title.trim()) newErrors.title = 'Title is required';
+      if (formData.title.length < 5) newErrors.title = 'Title must be at least 5 characters';
+      if (!formData.description.trim()) newErrors.description = 'Description is required';
+      if (formData.description.length < 50) newErrors.description = 'Description must be at least 50 characters';
+      if (!formData.category) newErrors.category = 'Category is required';
+      if (formData.tags.length === 0) newErrors.tags = 'Add at least one tag';
+    }
+
+    if (step === 2) {
+      if (!formData.thumbnail && !formData.video) {
+        newErrors.media = 'Upload at least a thumbnail or intro video';
+      }
+    }
+
+    if (step === 3) {
+      if (formData.accessLevel === 'paid' && formData.price <= 0) {
+        newErrors.price = 'Price must be greater than 0 for paid courses';
+      }
+      if (!formData.duration || formData.duration <= 0) {
+        newErrors.duration = 'Duration must be greater than 0';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 3));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const removePdfFile = (index: number) => {
-    setPdfFiles(prev => prev.filter((_, i) => i !== index));
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = (e: React.DragEvent, field: keyof typeof dragActive) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
+      setDragActive({ ...dragActive, [field]: true });
     } else if (e.type === 'dragleave') {
-      setDragActive(false);
+      setDragActive({ ...dragActive, [field]: false });
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, field: 'thumbnail' | 'video' | 'documents') => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
+    setDragActive({ ...dragActive, [field]: false });
 
-    const files = e.dataTransfer.files;
-    if (files?.[0]) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        // Store file in local state only - NO UPLOAD occurs here
-        setImage(file);
-        // Create local preview using FileReader API - NO server upload
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImagePreview(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      if (field === 'documents') {
+        handleFileChange({ target: { files } } as any, field);
+      } else {
+        handleFileChange({ target: { files: [files[0]] } } as any, field);
       }
     }
   };
 
-  const handlePdfDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'thumbnail' | 'video' | 'documents') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const files = Array.from(e.dataTransfer.files);
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
-    // Store files in local state only - NO UPLOAD occurs here
-    setPdfFiles(prev => [...prev, ...pdfFiles]);
+    if (field === 'thumbnail') {
+      const file = files[0];
+      if (!file.type.startsWith('image/')) {
+        setErrors({ ...errors, thumbnail: 'Please select an image file' });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ ...errors, thumbnail: 'Image must be less than 5MB' });
+        return;
+      }
+      setFormData({ ...formData, thumbnail: file });
+      setErrors({ ...errors, thumbnail: '' });
+    } else if (field === 'video') {
+      const file = files[0];
+      if (!file.type.startsWith('video/')) {
+        setErrors({ ...errors, video: 'Please select a video file' });
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        setErrors({ ...errors, video: 'Video must be less than 100MB' });
+        return;
+      }
+      setFormData({ ...formData, video: file });
+      setErrors({ ...errors, video: '' });
+    } else if (field === 'documents') {
+      const newDocs = Array.from(files).filter(file => {
+        const validTypes = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
+        return validTypes.some(type => file.name.toLowerCase().endsWith(type));
+      });
+      if (newDocs.length !== files.length) {
+        setErrors({ ...errors, documents: 'Some files were skipped (only PDF, DOC, PPT allowed)' });
+      }
+      setFormData({ ...formData, documents: [...formData.documents, ...newDocs] });
+    }
   };
 
-  const validateStep = (step: number) => {
-    switch (step) {
-      case 1:
-        return formData.title.trim() && formData.description.trim() && formData.category;
-      case 2:
-        return formData.instructor.trim() && formData.duration.trim();
-      case 3:
-        return formData.price && parseFloat(formData.price) >= 0;
-      case 4:
-        return true; // Media files are optional
-      default:
-        return false;
-    }
+  const removeDocument = (index: number) => {
+    setFormData({
+      ...formData,
+      documents: formData.documents.filter((_, i) => i !== index),
+    });
   };
 
-  const nextStep = () => {
-    if (loading) {
-      console.warn('Cannot navigate: Form is submitting');
-      return;
-    }
-    if (validateStep(currentStep) && currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
+  const handleAddLearningPoint = () => {
+    setFormData({
+      ...formData,
+      whatYouWillLearn: [...formData.whatYouWillLearn, ''],
+    });
   };
 
-  const prevStep = () => {
-    if (loading) {
-      console.warn('Cannot navigate: Form is submitting');
-      return;
-    }
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+  const handleRemoveLearningPoint = (index: number) => {
+    setFormData({
+      ...formData,
+      whatYouWillLearn: formData.whatYouWillLearn.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleLearningPointChange = (index: number, value: string) => {
+    const updated = [...formData.whatYouWillLearn];
+    updated[index] = value;
+    setFormData({ ...formData, whatYouWillLearn: updated });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // SAFETY CHECK #1: Only submit on final step
-    // This ensures no premature data persistence
-    if (currentStep !== totalSteps) {
-      console.warn('Form submission prevented: Not on final step');
-      return;
-    }
-    
-    // SAFETY CHECK #2: Validate all steps before submission
-    for (let step = 1; step <= totalSteps; step++) {
-      if (!validateStep(step)) {
-        console.error(`Validation failed for step ${step}`);
-        setError(`Please complete all required fields in step ${step}`);
-        setCurrentStep(step);
-        return;
-      }
-    }
-    
-    // SAFETY CHECK #3: Prevent duplicate submissions
-    if (loading) {
-      console.warn('Form submission prevented: Already submitting');
-      return;
-    }
+    if (!validateStep(currentStep)) return;
 
-    setError('');
     setLoading(true);
-    console.log('Starting course creation...');
-    console.log('📤 This is the ONLY point where files are uploaded to the server');
-
     const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
 
     try {
-      // Build FormData with all form fields AND files
-      // Files have been stored in local state (image, pdfFiles) until now
-      const formDataObj = new FormData();
-      formDataObj.append('title', formData.title);
-      formDataObj.append('description', formData.description);
-      formDataObj.append('category', formData.category);
-      formDataObj.append('price', formData.price);
-      formDataObj.append('instructor', formData.instructor);
-      formDataObj.append('duration', formData.duration);
-      formDataObj.append('syllabus', formData.syllabus);
-
-      // Add image file if selected
-      if (image) {
-        formDataObj.append('image', image);
+      const formDataToSend = new FormData();
+      
+      // Append text fields
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('tags', JSON.stringify(formData.tags));
+      formDataToSend.append('level', formData.level);
+      formDataToSend.append('price', formData.price.toString());
+      formDataToSend.append('duration', formData.duration.toString());
+      formDataToSend.append('language', formData.language);
+      formDataToSend.append('prerequisites', formData.prerequisites);
+      formDataToSend.append('whatYouWillLearn', JSON.stringify(formData.whatYouWillLearn.filter(item => item.trim())));
+      formDataToSend.append('targetAudience', formData.targetAudience);
+      formDataToSend.append('isPublished', formData.isPublished.toString());
+      formDataToSend.append('accessLevel', formData.accessLevel);
+      if (formData.scheduledPublishDate) {
+        formDataToSend.append('scheduledPublishDate', formData.scheduledPublishDate);
       }
 
-      // Add PDF files if any
-      pdfFiles.forEach((file, index) => {
-        formDataObj.append(`pdfFiles`, file);
+      // Append files
+      if (formData.thumbnail) {
+        formDataToSend.append('thumbnail', formData.thumbnail);
+      }
+      if (formData.video) {
+        formDataToSend.append('video', formData.video);
+      }
+      formData.documents.forEach((doc, index) => {
+        formDataToSend.append(`documents`, doc);
       });
 
-      // SINGLE API CALL: Create course with all data including file uploads
-      console.log('📤 Uploading course data and files...');
-      
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
         {
@@ -267,409 +314,710 @@ export default function CreateCoursePage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          body: formDataObj,
+          body: formDataToSend,
         }
       );
 
-      if (!response.ok) {
+      if (response.ok) {
+        localStorage.removeItem('courseDraft');
         const data = await response.json();
-        console.error('❌ Course creation failed:', data);
-        
-        // Provide user-friendly error messages
-        let errorMessage = data.message || 'Failed to create course';
-        
-        if (data.message?.includes('Google Drive')) {
-          errorMessage += '\n\nNote: Files are being saved locally. The course was still created successfully.';
-        }
-        
-        if (data.error && process.env.NODE_ENV === 'development') {
-          errorMessage += `\n\nTechnical details: ${data.error}`;
-        }
-        
-        setError(errorMessage);
-        setLoading(false);
-        return;
+        router.push(`/courses/${data.data._id}/edit`);
+      } else {
+        const error = await response.json();
+        setErrors({ submit: error.message || 'Failed to create course' });
       }
-
-      const result = await response.json();
-      console.log('✅ Course created successfully:', result);
-      
-      // Show success message
-      alert(`Course "${formData.title}" created successfully!`);
-      
-      router.push('/courses');
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Error creating course:', err);
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'An error occurred' });
     } finally {
       setLoading(false);
     }
   };
 
-  const steps = [
-    { id: 1, name: 'Basic Info', description: 'Course details' },
-    { id: 2, name: 'Instructor & Duration', description: 'Course structure' },
-    { id: 3, name: 'Pricing', description: 'Set course price' },
-    { id: 4, name: 'Media & Files', description: 'Upload materials' },
-  ];
+  const progressPercentage = (currentStep / steps.length) * 100;
 
   return (
     <AdminLayout user={user}>
-      <div className="p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <Link
-              href="/courses"
-              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-4"
-            >
-              <ArrowLeftIcon className="w-5 h-5 mr-2" />
-              Back to Courses
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Course</h1>
-            <p className="text-gray-600">Build a comprehensive course with all necessary materials and information.</p>
-          </div>
-
-          {/* Progress Indicator */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                    step.id <= currentStep
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {step.id < currentStep ? (
-                      <CheckCircleIcon className="w-6 h-6" />
-                    ) : (
-                      step.id
-                    )}
-                  </div>
-                  <div className="ml-4">
-                    <div className={`font-medium ${
-                      step.id <= currentStep ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
-                      {step.name}
-                    </div>
-                    <div className="text-sm text-gray-500">{step.description}</div>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`flex-1 h-px mx-8 ${
-                      step.id < currentStep ? 'bg-blue-600' : 'bg-gray-200'
-                    }`} />
-                  )}
-                </div>
-              ))}
+      <div className="p-6 lg:p-8 max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
+            Back to Courses
+          </button>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Course</h1>
+              <p className="text-gray-600">Fill in the details to create a new course</p>
             </div>
-          </div>
-
-          {/* Form */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} onKeyDown={(e) => {
-              if (e.key === 'Enter' && currentStep !== totalSteps) {
-                e.preventDefault();
-              }
-            }}>
-              {/* Step 1: Basic Info */}
-              {currentStep === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Title *
-                    </label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter an engaging course title"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Description *
-                    </label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      required
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Describe what students will learn in this course..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Category *
-                    </label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select a category</option>
-                      <option value="programming">Programming</option>
-                      <option value="design">Design</option>
-                      <option value="business">Business</option>
-                      <option value="marketing">Marketing</option>
-                      <option value="data-science">Data Science</option>
-                      <option value="language">Language Learning</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Instructor & Duration */}
-              {currentStep === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Instructor Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="instructor"
-                      value={formData.instructor}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Full name of the course instructor"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Duration *
-                    </label>
-                    <input
-                      type="text"
-                      name="duration"
-                      value={formData.duration}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 8 weeks, 40 hours, 20 lessons"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Syllabus
-                    </label>
-                    <textarea
-                      name="syllabus"
-                      value={formData.syllabus}
-                      onChange={handleInputChange}
-                      rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Outline the course curriculum, modules, and learning objectives..."
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Pricing */}
-              {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Price ($) *
-                    </label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      required
-                      step="0.01"
-                      min="0"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">Set the price for your course. Use 0 for free courses.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Media & Files */}
-              {currentStep === 4 && (
-                <div className="space-y-6">
-                  {/* Course Image */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Image
-                    </label>
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        dragActive
-                          ? 'border-blue-400 bg-blue-50'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                    >
-                      {imagePreview ? (
-                        <div className="space-y-4">
-                          <img
-                            src={imagePreview}
-                            alt="Course preview"
-                            className="max-w-xs max-h-48 mx-auto rounded-lg object-cover"
-                          />
-                          <div>
-                            <p className="text-sm text-gray-600 mb-2">Image uploaded successfully!</p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImage(null);
-                                setImagePreview(null);
-                              }}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium"
-                            >
-                              Remove image
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto" />
-                          <div>
-                            <p className="text-lg font-medium text-gray-900">Upload course image</p>
-                            <p className="text-gray-500">Drag and drop an image here, or click to browse</p>
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                            id="course-image-upload"
-                          />
-                          <label
-                            htmlFor="course-image-upload"
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
-                          >
-                            Choose Image
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">Recommended: 800x600px, JPG or PNG format</p>
-                  </div>
-
-                  {/* PDF Files */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Course Materials (PDFs)
-                    </label>
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        dragActive
-                          ? 'border-blue-400 bg-blue-50'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handlePdfDrop}
-                    >
-                      <div className="space-y-4">
-                        <DocumentIcon className="w-12 h-12 text-gray-400 mx-auto" />
-                        <div>
-                          <p className="text-lg font-medium text-gray-900">Upload course materials</p>
-                          <p className="text-gray-500">Drag and drop PDF files here, or click to browse</p>
-                        </div>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          multiple
-                          onChange={handlePdfChange}
-                          className="hidden"
-                          id="pdf-upload"
-                        />
-                        <label
-                          htmlFor="pdf-upload"
-                          className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors"
-                        >
-                          Choose PDFs
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Uploaded PDFs */}
-                    {pdfFiles.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <p className="text-sm font-medium text-gray-900">Uploaded Files:</p>
-                        {pdfFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                            <div className="flex items-center">
-                              <DocumentIcon className="w-5 h-5 text-red-500 mr-2" />
-                              <span className="text-sm text-gray-900">{file.name}</span>
-                              <span className="text-xs text-gray-500 ml-2">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removePdfFile(index)}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between pt-8 mt-8 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={prevStep}
-                  disabled={currentStep === 1 || loading}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Previous
-                </button>
-
-                {currentStep < totalSteps ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={!validateStep(currentStep) || loading}
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {loading ? 'Please wait...' : 'Next'}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={loading || !validateStep(currentStep)}
-                    className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {loading ? 'Creating Course...' : 'Create Course'}
-                  </button>
+            {autoSaveStatus && (
+              <div className="flex items-center gap-2 text-sm">
+                {autoSaveStatus === 'saving' && (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-600">Saving draft...</span>
+                  </>
+                )}
+                {autoSaveStatus === 'saved' && (
+                  <>
+                    <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600">Draft saved</span>
+                  </>
                 )}
               </div>
-            </form>
+            )}
           </div>
         </div>
+
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold mb-2 transition-all ${
+                      currentStep >= step.number
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {currentStep > step.number ? (
+                      <CheckCircleIcon className="w-6 h-6" />
+                    ) : (
+                      <step.icon className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-gray-900">{step.title}</div>
+                    <div className="text-xs text-gray-500">Step {step.number}</div>
+                  </div>
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`h-1 flex-1 mx-4 transition-all ${
+                      currentStep > step.number ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          {/* Step 1: Basic Info */}
+          {currentStep === 1 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Basic Course Information</h2>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.title ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="e.g., Complete eBay Mastery Course"
+                />
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <ExclamationCircleIcon className="w-4 h-4" />
+                    {errors.title}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description <span className="text-red-500">*</span>
+                  <span className="text-gray-500 text-xs ml-2">(minimum 50 characters)</span>
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={5}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.description ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Provide a detailed description of what students will learn in this course..."
+                />
+                <div className="mt-1 flex items-center justify-between">
+                  {errors.description ? (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <ExclamationCircleIcon className="w-4 h-4" />
+                      {errors.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500">{formData.description.length} characters</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Category and Level */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.category ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">Select a category</option>
+                    <option value="eBay Basics">eBay Basics</option>
+                    <option value="Advanced Selling">Advanced Selling</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Product Sourcing">Product Sourcing</option>
+                    <option value="Business Management">Business Management</option>
+                  </select>
+                  {errors.category && (
+                    <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Difficulty Level
+                  </label>
+                  <select
+                    value={formData.level}
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tags <span className="text-red-500">*</span>
+                  <span className="text-gray-500 text-xs ml-2">(press Enter to add)</span>
+                </label>
+                <input
+                  type="text"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const value = e.currentTarget.value.trim();
+                      if (value && !formData.tags.includes(value)) {
+                        setFormData({ ...formData, tags: [...formData.tags, value] });
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Type a tag and press Enter"
+                />
+                {formData.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {formData.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tags: formData.tags.filter((_, i) => i !== index) })}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {errors.tags && (
+                  <p className="mt-1 text-sm text-red-600">{errors.tags}</p>
+                )}
+              </div>
+
+              {/* What You Will Learn */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  What Students Will Learn
+                </label>
+                <div className="space-y-3">
+                  {formData.whatYouWillLearn.map((point, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={point}
+                        onChange={(e) => handleLearningPointChange(index, e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Learning point ${index + 1}`}
+                      />
+                      {formData.whatYouWillLearn.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLearningPoint(index)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddLearningPoint}
+                    className="inline-flex items-center px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <PlusIcon className="w-5 h-5 mr-2" />
+                    Add Learning Point
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Media Upload */}
+          {currentStep === 2 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Course Media</h2>
+              </div>
+
+              {/* Thumbnail Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Thumbnail
+                  <span className="text-gray-500 text-xs ml-2">(Max 5MB, JPG/PNG)</span>
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                    dragActive.thumbnail
+                      ? 'border-blue-500 bg-blue-50'
+                      : formData.thumbnail
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={(e) => handleDrag(e, 'thumbnail')}
+                  onDragLeave={(e) => handleDrag(e, 'thumbnail')}
+                  onDragOver={(e) => handleDrag(e, 'thumbnail')}
+                  onDrop={(e) => handleDrop(e, 'thumbnail')}
+                >
+                  {formData.thumbnail ? (
+                    <div className="space-y-4">
+                      <img
+                        src={URL.createObjectURL(formData.thumbnail)}
+                        alt="Thumbnail preview"
+                        className="mx-auto max-h-48 rounded-lg"
+                      />
+                      <div className="flex items-center justify-center gap-4">
+                        <p className="text-sm text-gray-600">{formData.thumbnail.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, thumbnail: null })}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => thumbnailRef.current?.click()}
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <CloudArrowUpIcon className="w-5 h-5 mr-2" />
+                          Choose Image
+                        </button>
+                        <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={thumbnailRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, 'thumbnail')}
+                  className="hidden"
+                />
+                {errors.thumbnail && (
+                  <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
+                )}
+              </div>
+
+              {/* Video Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Intro Video
+                  <span className="text-gray-500 text-xs ml-2">(Max 100MB, MP4/MOV)</span>
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                    dragActive.video
+                      ? 'border-blue-500 bg-blue-50'
+                      : formData.video
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={(e) => handleDrag(e, 'video')}
+                  onDragLeave={(e) => handleDrag(e, 'video')}
+                  onDragOver={(e) => handleDrag(e, 'video')}
+                  onDrop={(e) => handleDrop(e, 'video')}
+                >
+                  {formData.video ? (
+                    <div className="space-y-4">
+                      <VideoCameraIcon className="mx-auto h-12 w-12 text-green-600" />
+                      <div className="flex items-center justify-center gap-4">
+                        <p className="text-sm text-gray-600">{formData.video.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, video: null })}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <VideoCameraIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => videoRef.current?.click()}
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <CloudArrowUpIcon className="w-5 h-5 mr-2" />
+                          Choose Video
+                        </button>
+                        <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={videoRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => handleFileChange(e, 'video')}
+                  className="hidden"
+                />
+                {errors.video && (
+                  <p className="mt-1 text-sm text-red-600">{errors.video}</p>
+                )}
+              </div>
+
+              {/* Documents Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Materials
+                  <span className="text-gray-500 text-xs ml-2">(PDF, DOC, PPT)</span>
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                    dragActive.documents
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={(e) => handleDrag(e, 'documents')}
+                  onDragLeave={(e) => handleDrag(e, 'documents')}
+                  onDragOver={(e) => handleDrag(e, 'documents')}
+                  onDrop={(e) => handleDrop(e, 'documents')}
+                >
+                  <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => documentsRef.current?.click()}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <CloudArrowUpIcon className="w-5 h-5 mr-2" />
+                      Choose Files
+                    </button>
+                    <p className="mt-2 text-sm text-gray-600">or drag and drop multiple files</p>
+                  </div>
+                </div>
+                <input
+                  ref={documentsRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
+                  onChange={(e) => handleFileChange(e, 'documents')}
+                  className="hidden"
+                />
+                {formData.documents.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {formData.documents.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <DocumentTextIcon className="w-5 h-5 text-gray-600" />
+                          <span className="text-sm text-gray-700">{doc.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDocument(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {errors.documents && (
+                  <p className="mt-1 text-sm text-red-600">{errors.documents}</p>
+                )}
+              </div>
+
+              {errors.media && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 flex items-center gap-2">
+                    <InformationCircleIcon className="w-5 h-5" />
+                    {errors.media}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Advanced Settings */}
+          {currentStep === 3 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Advanced Settings</h2>
+              </div>
+
+              {/* Access Level */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Access Level <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(['free', 'paid', 'premium'] as const).map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, accessLevel: level })}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                        formData.accessLevel === level
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900 capitalize mb-1">{level}</div>
+                      <div className="text-sm text-gray-600">
+                        {level === 'free' && 'Free for all users'}
+                        {level === 'paid' && 'Requires payment'}
+                        {level === 'premium' && 'Premium members only'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price and Duration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price (PKR) {formData.accessLevel === 'paid' && <span className="text-red-500">*</span>}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.price ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="0"
+                    disabled={formData.accessLevel === 'free'}
+                  />
+                  {errors.price && (
+                    <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (hours) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseFloat(e.target.value) || 0 })}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.duration ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="0"
+                  />
+                  {errors.duration && (
+                    <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Language and Prerequisites */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Language
+                  </label>
+                  <select
+                    value={formData.language}
+                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="English">English</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Both">English & Urdu</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Audience
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.targetAudience}
+                    onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Aspiring eBay sellers"
+                  />
+                </div>
+              </div>
+
+              {/* Prerequisites */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Prerequisites
+                </label>
+                <textarea
+                  value={formData.prerequisites}
+                  onChange={(e) => setFormData({ ...formData, prerequisites: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="What students need to know before taking this course..."
+                />
+              </div>
+
+              {/* Publishing Options */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Publishing Options</h3>
+                
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={formData.isPublished}
+                      onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">Publish immediately</span>
+                      <p className="text-sm text-gray-600">Make this course available to students right away</p>
+                    </div>
+                  </label>
+
+                  {!formData.isPublished && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Schedule Publish Date (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.scheduledPublishDate}
+                        onChange={(e) => setFormData({ ...formData, scheduledPublishDate: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800 flex items-center gap-2">
+                <ExclamationCircleIcon className="w-5 h-5" />
+                {errors.submit}
+              </p>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between pt-6">
+            {currentStep > 1 ? (
+              <button
+                type="button"
+                onClick={handlePrevious}
+                className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                Previous
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {currentStep < 3 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Next
+                <ArrowRightIcon className="w-5 h-5 ml-2" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Creating Course...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="w-5 h-5 mr-2" />
+                    Create Course
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </AdminLayout>
   );

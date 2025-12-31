@@ -4,6 +4,7 @@ import '../styles/globals.css';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnnouncementBar from '../components/AnnouncementBar';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { ShopProvider } from '../context/ShopContext';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -21,14 +22,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ShopProvider>
-          <AnnouncementBar />
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
-        </ShopProvider>
+        <ErrorBoundary>
+          <ShopProvider>
+            <AnnouncementBar />
+            <Navbar />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Footer />
+          </ShopProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
