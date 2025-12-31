@@ -95,19 +95,19 @@ export default function EnrollmentPaymentModal({
 
   const paymentInstructions: { [key: string]: { account: string; name: string; instructions: string } } = {
     jazzcash: {
-      account: '03XX-XXXXXXX',
-      name: 'LMS Admin',
+      account: '03308085355',
+      name: 'Shahnam khan',
       instructions: 'Send payment to the JazzCash account above and upload the screenshot',
     },
     easypaisa: {
-      account: '03XX-XXXXXXX',
-      name: 'LMS Admin',
+      account: '03482881579',
+      name: 'Shahnam khan',
       instructions: 'Send payment to the EasyPaisa account above and upload the screenshot',
     },
     'bank-transfer': {
-      account: 'XXXX-XXXX-XXXX-XXXX',
-      name: 'LMS Education Platform',
-      instructions: 'Transfer to the bank account above (Bank: ABC Bank) and upload the receipt',
+      account: 'PK56 MEZN 0000 300111658517',
+      name: 'Shahnam khan',
+      instructions: 'Transfer to the bank account above (Bank: Meezan Bank) and upload the receipt',
     },
   };
 
@@ -159,18 +159,20 @@ export default function EnrollmentPaymentModal({
             </div>
 
             {/* Payment Instructions */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h4 className="font-semibold text-yellow-900 mb-2">Payment Instructions</h4>
-              <p className="text-sm text-yellow-800 mb-2">
-                <strong>Account Number:</strong> {paymentInstructions[paymentMethod].account}
-              </p>
-              <p className="text-sm text-yellow-800 mb-2">
-                <strong>Account Name:</strong> {paymentInstructions[paymentMethod].name}
-              </p>
-              <p className="text-sm text-yellow-800">
-                {paymentInstructions[paymentMethod].instructions}
-              </p>
-            </div>
+            {paymentInstructions[paymentMethod] && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-900 mb-2">Payment Instructions</h4>
+                <p className="text-sm text-yellow-800 mb-2">
+                  <strong>Account Number:</strong> {paymentInstructions[paymentMethod].account}
+                </p>
+                <p className="text-sm text-yellow-800 mb-2">
+                  <strong>Account Name:</strong> {paymentInstructions[paymentMethod].name}
+                </p>
+                <p className="text-sm text-yellow-800">
+                  {paymentInstructions[paymentMethod].instructions}
+                </p>
+              </div>
+            )}
 
             {/* Transaction Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
