@@ -58,7 +58,7 @@ export default function CreateCoursePage() {
     thumbnail: null,
     video: null,
     documents: [],
-    isPublished: false,
+    isPublished: true, // Default to publishing immediately
     accessLevel: 'paid',
     scheduledPublishDate: '',
   });
@@ -298,13 +298,11 @@ export default function CreateCoursePage() {
 
       // Append files
       if (formData.thumbnail) {
-        formDataToSend.append('thumbnail', formData.thumbnail);
+        formDataToSend.append('image', formData.thumbnail);
       }
-      if (formData.video) {
-        formDataToSend.append('video', formData.video);
-      }
+      // Note: Video is not supported in course creation, only in lessons
       formData.documents.forEach((doc, index) => {
-        formDataToSend.append(`documents`, doc);
+        formDataToSend.append('pdfFiles', doc);
       });
 
       const response = await fetch(

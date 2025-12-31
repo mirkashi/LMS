@@ -77,18 +77,20 @@ const courseSchema = new mongoose.Schema(
             pdfUrl: String,
             content: String,
             duration: Number, // in minutes
-            resources: [{
-              url: String,
-              name: String,
-              size: Number,
-              type: String,
-              driveFileId: String,
-              storageType: {
+            resources: [
+              new mongoose.Schema({
+                url: String,
+                name: String,
+                size: Number,
                 type: String,
-                enum: ['local', 'google-drive'],
-                default: 'google-drive',
-              }
-            }],
+                driveFileId: String,
+                storageType: {
+                  type: String,
+                  enum: ['local', 'google-drive'],
+                  default: 'google-drive',
+                }
+              }, { _id: false })
+            ],
           },
         ],
       },

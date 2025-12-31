@@ -198,10 +198,19 @@ exports.postReview = async (req, res) => {
   }
 };
 
-// Request Enrollment in Course
+// Request Enrollment in Course with Payment
 exports.requestEnrollment = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const { 
+      paymentMethod, 
+      paymentAmount, 
+      accountNumber, 
+      accountName, 
+      transactionId, 
+      transactionDate,
+      notes 
+    } = req.body;
     const userId = req.user.userId;
 
     const course = await Course.findById(courseId);
@@ -209,6 +218,14 @@ exports.requestEnrollment = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Course not found',
+      });
+    }
+
+    // Validate payment amount matches course price
+    if (parseFloat(paymentAmount) !== parseFloat(course.price)) {
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount must match course price: ${course.price}`,
       });
     }
 
@@ -226,18 +243,62 @@ exports.requestEnrollment = async (req, res) => {
       });
     }
 
-    // Create new enrollment request
+    // Handle payment proof upload
+    let paymentProof = null;
+    if (req.file) {
+      const { uploadBufferToDrive, isGoogleDriveConfigured } = require('../utils/googleDrive');
+      
+      try {
+        const uploaded = await uploadBufferToDrive({
+          buffer: req.file.buffer,
+          name: `payment-proof-${userId}-${courseId}-${Date.now()}-${req.file.originalname}`,
+          mimeType: req.file.mimetype,
+        });
+
+        paymentProof = {
+          url: uploaded.url,
+          filename: req.file.originalname,
+          uploadedAt: new Date(),
+          storageType: uploaded.storageType || 'local',
+        };
+      } catch (error) {
+        console.error('Failed to upload payment proof:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload payment proof. Please try again.',
+          error: error.message,
+        });
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment proof screenshot is required',
+      });
+    }
+
+    // Create new enrollment request with payment
     const enrollment = new Enrollment({
       user: userId,
       course: courseId,
       status: 'pending',
+      paymentStatus: 'submitted',
+      paymentMethod,
+      paymentAmount,
+      paymentProof,
+      transactionDetails: {
+        accountNumber,
+        accountName,
+        transactionId,
+        transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
+        notes,
+      },
     });
 
     await enrollment.save();
 
     res.status(201).json({
       success: true,
-      message: 'Enrollment request submitted successfully. Awaiting admin approval.',
+      message: 'Enrollment request with payment proof submitted successfully. Awaiting admin approval.',
       data: enrollment,
     });
   } catch (error) {

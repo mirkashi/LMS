@@ -60,7 +60,7 @@ exports.getAllCourses = async (req, res) => {
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, category, price, duration, level, syllabus } = req.body;
+    const { title, description, category, price, duration, level, syllabus, isPublished } = req.body;
     const userId = req.user.userId;
 
     // Validate required fields
@@ -89,6 +89,7 @@ exports.createCourse = async (req, res) => {
       level: level || 'beginner',
       instructor: userId,
       modules: [],
+      isPublished: isPublished === 'true' || isPublished === true, // Handle string 'true' from FormData
     });
 
     // Upload files to Google Drive with proper error handling
@@ -1033,15 +1034,16 @@ exports.deleteProduct = async (req, res) => {
 // Get All Enrollment Requests
 exports.getAllEnrollments = async (req, res) => {
   try {
-    const { status, courseId } = req.query;
+    const { status, courseId, paymentStatus } = req.query;
     let filter = {};
 
     if (status) filter.status = status;
     if (courseId) filter.course = courseId;
+    if (paymentStatus) filter.paymentStatus = paymentStatus;
 
     const enrollments = await Enrollment.find(filter)
-      .populate('user', 'name email phone')
-      .populate('course', 'title price category')
+      .populate('user', 'name email phone avatar')
+      .populate('course', 'title price category thumbnail')
       .populate('reviewedBy', 'name email')
       .sort({ requestedAt: -1 });
 

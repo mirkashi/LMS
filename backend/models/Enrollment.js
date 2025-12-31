@@ -17,6 +17,36 @@ const enrollmentSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected'],
       default: 'pending',
     },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'submitted', 'verified', 'rejected'],
+      default: 'pending',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['jazzcash', 'easypaisa', 'bank-transfer', 'credit-card'],
+    },
+    paymentAmount: {
+      type: Number,
+      required: true,
+    },
+    paymentProof: {
+      url: String,
+      filename: String,
+      uploadedAt: Date,
+      storageType: {
+        type: String,
+        enum: ['local', 'google-drive'],
+        default: 'local',
+      },
+    },
+    transactionDetails: {
+      accountNumber: String,
+      accountName: String,
+      transactionId: String,
+      transactionDate: Date,
+      notes: String,
+    },
     requestedAt: {
       type: Date,
       default: Date.now,
