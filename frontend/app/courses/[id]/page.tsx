@@ -13,6 +13,7 @@ export default function CourseDetail() {
   const courseId = params.id as string;
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
