@@ -77,7 +77,7 @@ export default function CoursesPage() {
         setUser(user);
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/courses`,
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/courses`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
