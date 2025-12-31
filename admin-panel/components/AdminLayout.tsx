@@ -13,7 +13,9 @@ import {
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   MegaphoneIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  CreditCardIcon,
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 interface AdminLayoutProps {
@@ -49,6 +51,8 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     { name: 'Courses', href: '/courses', icon: BookOpenIcon },
     { name: 'Products', href: '/products', icon: ShoppingBagIcon },
     { name: 'Orders', href: '/orders', icon: ClipboardDocumentListIcon },
+    { name: 'Payment Received', href: '/payments', icon: CreditCardIcon },
+    { name: 'Enrollments', href: '/enrollments', icon: AcademicCapIcon },
     { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
     { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
