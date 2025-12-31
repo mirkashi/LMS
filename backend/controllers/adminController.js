@@ -1115,6 +1115,14 @@ exports.approveEnrollment = async (req, res) => {
       });
     }
 
+    // Ensure paymentAmount is set from course price if missing
+    if (!enrollment.paymentAmount) {
+      const course = await Course.findById(enrollment.course);
+      if (course) {
+        enrollment.paymentAmount = course.price;
+      }
+    }
+
     // Update enrollment status
     enrollment.status = 'approved';
     enrollment.paymentStatus = 'verified';

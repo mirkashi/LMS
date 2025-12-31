@@ -28,7 +28,7 @@ const enrollmentSchema = new mongoose.Schema(
     },
     paymentAmount: {
       type: Number,
-      required: true,
+      required: false,
     },
     paymentProof: {
       url: String,
