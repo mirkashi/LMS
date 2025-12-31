@@ -1,17 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AppImage from '@/components/AppImage';
+import EnrollmentPaymentModal from '@/components/EnrollmentPaymentModal';
+import { getAssetUrl } from '@/lib/assets';
 
 export default function CourseDetail() {
   const params = useParams();
+  const router = useRouter();
   const courseId = params.id as string;
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
-  const [enrolling, setEnrolling] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -46,52 +50,55 @@ export default function CourseDetail() {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
 
-    setEnrolling(true);
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/enroll`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        setEnrollmentStatus('pending');
-        alert('Enrollment request submitted! Please wait for admin approval.');
-      } else {
-        alert(data.message || 'Failed to submit enrollment request');
-      }
-    } catch (error) {
-      console.error('Failed to enroll:', error);
-      alert('Failed to submit enrollment request');
-    } finally {
-      setEnrolling(false);
-    }
+    // Open payment modal instead of direct enrollment
+    setShowPaymentModal(true);
   };
 
-  const getEnrollmentButtonText = () => {
-    if (enrolling) return 'Submitting...';
-    if (!enrollmentStatus) return 'Request Enrollment';
+  const handleEnrollmentSuccess = () => {
+    // Refresh course data
+    const fetchCourse = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers: any = {};
+        
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`,
+          { headers }
+        );
+        const data = await response.json();
+        if (data.success) {
+          setCourse(data.data);
+          setEnrollmentStatus(data.data.enrollmentStatus);
+        }
+      } catch (error) {
+        console.error('Failed to fetch course:', error);
+      }
+    };
+
+    fetc!enrollmentStatus) return 'Enroll Now - Pay & Request Access';
     
     switch (enrollmentStatus) {
       case 'pending':
-        return '⏳ Pending Approval';
+        return '⏳ Payment Under Review';
       case 'approved':
-        return '✓ Enrolled';
+        return '✓ Enrolled - Access Granted';
       case 'rejected':
-        return '✗ Request Denied';
+        return 'Request Denied - Try Again';
       default:
-        return 'Request Enrollment';
+        return 'Enroll Now - Pay & Request Access';
     }
+  };
+
+  const isEnrollmentDisabled = () => {
+    return
   };
 
   const isEnrollmentDisabled = () => {
@@ -133,8 +140,8 @@ export default function CourseDetail() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
               <div className="md:col-span-2">
                 {course.thumbnail && (
-                  <img
-                    src={course.thumbnail}
+                  <AppImage
+                    path={course.thumbnail}
                     alt={course.title}
                     className="w-full h-96 object-cover rounded-lg mb-6"
                   />
@@ -205,12 +212,12 @@ export default function CourseDetail() {
                                         {lesson.resources.map((resource: any, resIdx: number) => (
                                           <a
                                             key={resIdx}
-                                            href={resource.url}
+                                            href={getAssetUrl(resource.url) || resource.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:underline text-sm block"
                                           >
-                                            📎 {resource.name} ({(resource.size / 1024 / 1024).toFixed(2)} MB)
+                                            📎 {resource.name} ({((resource.size || 0) / 1024 / 1024).toFixed(2)} MB)
                                           </a>
                                         ))}
                                       </div>
@@ -218,7 +225,7 @@ export default function CourseDetail() {
                                     {/* For legacy pdfUrl */}
                                     {lesson.pdfUrl && (
                                       <a
-                                        href={lesson.pdfUrl}
+                                        href={getAssetUrl(lesson.pdfUrl) || lesson.pdfUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline text-sm block mt-1"
@@ -421,5 +428,13 @@ export default function CourseDetail() {
           </div>
         </div>
       </main>
+
+      {/* Enrollment Payment Modal */}
+      <EnrollmentPaymentModal
+        course={course}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handleEnrollmentSuccess}
+      />
   );
 }

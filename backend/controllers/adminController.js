@@ -1117,6 +1117,7 @@ exports.approveEnrollment = async (req, res) => {
 
     // Update enrollment status
     enrollment.status = 'approved';
+    enrollment.paymentStatus = 'verified';
     enrollment.reviewedAt = new Date();
     enrollment.reviewedBy = adminId;
     await enrollment.save();
@@ -1179,6 +1180,7 @@ exports.rejectEnrollment = async (req, res) => {
 
     // Update enrollment status
     enrollment.status = 'rejected';
+    enrollment.paymentStatus = 'rejected';
     enrollment.reviewedAt = new Date();
     enrollment.reviewedBy = adminId;
     enrollment.rejectionReason = reason || 'No reason provided';
