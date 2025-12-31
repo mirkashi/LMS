@@ -83,7 +83,11 @@ export default function CourseDetail() {
       }
     };
 
-    fetc!enrollmentStatus) return 'Enroll Now - Pay & Request Access';
+    fetchCourse();
+  };
+
+  const getEnrollmentButtonText = () => {
+    if (!enrollmentStatus) return 'Enroll Now - Pay & Request Access';
     
     switch (enrollmentStatus) {
       case 'pending':
@@ -95,10 +99,6 @@ export default function CourseDetail() {
       default:
         return 'Enroll Now - Pay & Request Access';
     }
-  };
-
-  const isEnrollmentDisabled = () => {
-    return
   };
 
   const isEnrollmentDisabled = () => {
@@ -130,7 +130,8 @@ export default function CourseDetail() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <>
+      <main className="min-h-screen bg-gray-50">
         {/* Course Header */}
         <div className="bg-white">
           <div className="max-w-7xl mx-auto px-4 py-12">
@@ -436,5 +437,6 @@ export default function CourseDetail() {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={handleEnrollmentSuccess}
       />
+    </>
   );
 }
