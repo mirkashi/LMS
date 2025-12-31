@@ -1,11 +1,21 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
 
 export default function AnalyticsPage() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('adminUser');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
   return (
-    <AdminLayout>
+    <AdminLayout user={user}>
       <div className="p-6 lg:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics</h1>

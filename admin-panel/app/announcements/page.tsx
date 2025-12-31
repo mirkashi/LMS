@@ -5,6 +5,15 @@ import AdminLayout from '@/components/AdminLayout';
 import { PlusIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 export default function AnnouncementsPage() {
+  // Defensive formatter to avoid rendering non-string values (e.g., user objects)
+  const toText = (value: any) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+      return value.name || value.email || value._id || '';
+    }
+    return '';
+  };
+
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,7 +47,13 @@ export default function AnnouncementsPage() {
     }
   };
 
+  const [user, setUser] = useState<any>(null);
+
   useEffect(() => {
+    const userData = localStorage.getItem('adminUser');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
     fetchAnnouncements();
   }, []);
 
@@ -107,9 +122,9 @@ export default function AnnouncementsPage() {
   const openEdit = (announcement: any) => {
     setEditingId(announcement._id);
     setFormData({
-      title: announcement.title || '',
-      message: announcement.message,
-      content: announcement.content || '',
+      title: toText(announcement.title) || '',
+      message: toText(announcement.message),
+      content: toText(announcement.content) || '',
       type: announcement.type,
       isActive: announcement.isActive,
       startDate: announcement.startDate ? announcement.startDate.split('T')[0] : '',
@@ -121,7 +136,7 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout user={user}>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
@@ -167,8 +182,8 @@ export default function AnnouncementsPage() {
               <tbody className="divide-y divide-gray-200">
                 {announcements.map((ann: any) => (
                   <tr key={ann._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{ann.title || 'Untitled'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{ann.message}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{toText(ann.title) || 'Untitled'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{toText(ann.message)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full capitalize ${
                         ann.type === 'info' ? 'bg-blue-100 text-blue-800' :
