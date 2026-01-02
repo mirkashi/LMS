@@ -8,6 +8,12 @@ export default function Courses() {
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  
+  // Background image URL - You can upload your image and set the URL here
+  // Option 1: Use a local image from /public folder: '/images/courses-bg.jpg'
+  // Option 2: Use an external URL: 'https://example.com/image.jpg'
+  // Option 3: Leave empty '' to use gradient only
+  const headerBackgroundImage = 'https://tse3.mm.bing.net/th/id/OIP.pMqmjKkli0zmuZ0PzZcoDgHaFj?w=768&h=576&rs=1&pid=ImgDetMain&o=7&rm=3'; // <-- UPLOAD YOUR IMAGE URL HERE
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -57,10 +63,22 @@ export default function Courses() {
   const levels = ['all', 'beginner', 'intermediate', 'advanced'];
 
   return (
-    <main className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <section className="bg-gradient-primary text-white py-12 px-4">
-          <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-gray-550">
+        {/* Header with Background Image Support */}
+        <section 
+          className="relative text-white py-12 px-4 bg-gradient-primary overflow-hidden"
+          style={{
+            backgroundImage: headerBackgroundImage ? `url('${headerBackgroundImage}')` : 'none',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          {/* Gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-indigo-900/80"></div>
+          
+          {/* Content */}
+          <div className="max-w-7xl mx-auto relative z-10">
             <h1 className="text-4xl font-bold mb-4">All Courses</h1>
             <p className="text-xl text-gray-100">
               Explore our collection of professional eBay courses
