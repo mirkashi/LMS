@@ -65,16 +65,9 @@ export default function AdminDashboard() {
           const data = await response.json();
           setStats(data.data);
 
-          // Mock chart data (replace with real API data in production)
+          // Use real chart data from API
           setChartData({
-            revenue: [
-              { month: 'Jan', revenue: 450000 },
-              { month: 'Feb', revenue: 780000 },
-              { month: 'Mar', revenue: 620000 },
-              { month: 'Apr', revenue: 950000 },
-              { month: 'May', revenue: 810000 },
-              { month: 'Jun', revenue: 1100000 },
-            ],
+            revenue: data.data.revenueChart || [],
             users: [
               { month: 'Jan', users: 1200 },
               { month: 'Feb', users: 1450 },
@@ -84,10 +77,10 @@ export default function AdminDashboard() {
               { month: 'Jun', users: 1890 },
             ],
             categories: [
-              { name: 'Courses', value: 45, color: '#6366F1' }, // Indigo
-              { name: 'eBooks', value: 25, color: '#10B981' }, // Emerald
-              { name: 'Tools', value: 20, color: '#F59E0B' }, // Amber
-              { name: 'Other', value: 10, color: '#EF4444' }, // Red
+              { name: 'Courses', value: data.data.totalCourses || 0, color: '#6366F1' },
+              { name: 'Enrollments', value: data.data.totalEnrollments || 0, color: '#10B981' },
+              { name: 'Orders', value: data.data.totalOrders || 0, color: '#F59E0B' },
+              { name: 'Pending', value: data.data.pendingEnrollments || 0, color: '#EF4444' },
             ],
           });
         }
@@ -136,11 +129,11 @@ export default function AdminDashboard() {
       icon: CurrencyDollarIcon,
     },
     {
-      title: 'Active Orders',
-      value: stats?.activeOrders?.toLocaleString() || '0',
-      change: '-3%',
-      changeType: 'decrease',
-      icon: ShoppingBagIcon,
+      title: 'Enrollments',
+      value: stats?.totalEnrollments?.toLocaleString() || '0',
+      change: `${stats?.pendingEnrollments || 0} pending`,
+      changeType: 'increase',
+      icon: AcademicCapIcon,
     },
   ];
 
@@ -300,7 +293,7 @@ export default function AdminDashboard() {
                     <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: category.color }} />
                     <span className="font-semibold text-gray-700">{category.name}</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{category.value}%</span>
+                  <span className="text-lg font-bold text-gray-900">{category.value}</span>
                 </div>
               ))}
             </div>

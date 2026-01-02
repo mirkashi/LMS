@@ -68,10 +68,11 @@ const courseSchema = new mongoose.Schema(
               enum: ['video', 'pdf', 'text'],
             },
             videoUrl: String,
+            videoLink: String, // External video link (YouTube, Vimeo, etc.)
             videoDriveFileId: String,
             videoStorageType: {
               type: String,
-              enum: ['local', 'google-drive'],
+              enum: ['local', 'google-drive', 'external'],
               default: 'google-drive',
             },
             pdfUrl: String,

@@ -16,7 +16,27 @@ export default function CourseDetail() {
   const [enrolling, setEnrolling] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activeVideoLink, setActiveVideoLink] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [videoProgress, setVideoProgress] = useState<any>({});
+
+  // Helper function to convert video links to embed URLs
+  const getEmbedUrl = (url: string) => {
+    // YouTube
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const videoId = url.includes('youtu.be') 
+        ? url.split('youtu.be/')[1]?.split('?')[0]
+        : new URLSearchParams(new URL(url).search).get('v');
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    // Vimeo
+    if (url.includes('vimeo.com')) {
+      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+    // Return original URL for other platforms
+    return url;
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -149,13 +169,38 @@ export default function CourseDetail() {
                   />
                 )}
                 {/* Video Player */}
-                {activeVideoUrl && (
+                {activeVideoUrl && !activeVideoLink && (
                   <div className="mb-6">
                     <video
                       src={`${process.env.NEXT_PUBLIC_API_URL}${activeVideoUrl}`}
                       controls
                       className="w-full h-96 bg-black rounded-lg"
+                      onTimeUpdate={(e) => {
+                        const video = e.target as HTMLVideoElement;
+                        // Track progress every 5 seconds
+                        if (Math.floor(video.currentTime) % 5 === 0) {
+                          setVideoProgress((prev: any) => ({
+                            ...prev,
+                            currentTime: video.currentTime,
+                            duration: video.duration,
+                          }));
+                        }
+                      }}
                     />
+                  </div>
+                )}
+                {/* External Video Link (YouTube, Vimeo, etc.) */}
+                {activeVideoLink && (
+                  <div className="mb-6">
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                      <iframe
+                        src={getEmbedUrl(activeVideoLink)}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
                   </div>
                 )}
                 <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
@@ -194,8 +239,14 @@ export default function CourseDetail() {
                                 key={lessonIdx}
                                 className="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
                                 onClick={() => {
-                                  if (lesson.type === 'video' && lesson.videoUrl) {
-                                    setActiveVideoUrl(lesson.videoUrl);
+                                  if (lesson.type === 'video') {
+                                    if (lesson.videoLink) {
+                                      setActiveVideoLink(lesson.videoLink);
+                                      setActiveVideoUrl(null);
+                                    } else if (lesson.videoUrl) {
+                                      setActiveVideoUrl(lesson.videoUrl);
+                                      setActiveVideoLink(null);
+                                    }
                                   }
                                 }}
                               >

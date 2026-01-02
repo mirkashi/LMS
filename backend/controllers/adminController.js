@@ -125,10 +125,17 @@ exports.createCourse = async (req, res) => {
         });
         
         // Store the URL based on storage type
-        course.thumbnail = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
-        course.thumbnailStorageType = uploaded.storageType || 'google-drive';
+        if (uploaded.storageType === 'local') {
+          // For local storage, use the relative path that backend serves
+          course.thumbnail = uploaded.url; // e.g., /uploads/images/file.jpg
+          course.thumbnailStorageType = 'local';
+        } else {
+          // For Google Drive, use the direct link
+          course.thumbnail = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+          course.thumbnailStorageType = 'google-drive';
+        }
         
-        console.log(`✅ Course image uploaded successfully (${uploaded.storageType})`);
+        console.log(`✅ Course image uploaded successfully (${uploaded.storageType}): ${course.thumbnail}`);
       } catch (error) {
         console.error('Image upload error:', error);
         return res.status(500).json({
@@ -240,7 +247,45 @@ exports.updateCourse = async (req, res) => {
 
     // Handle image upload (frontend sends 'image', we store as 'thumbnail')
     if (req.files && req.files.image && req.files.image[0]) {
-      course.thumbnail = `/uploads/${req.files.image[0].filename}`;
+      const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
+      
+      // Get or create course folder (only if Google Drive is configured)
+      let courseFolderId = null;
+      const driveConfigured = isGoogleDriveConfigured();
+      
+      if (driveConfigured) {
+        try {
+          const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+          if (rootFolderId) {
+            courseFolderId = await createFolderIfNotExists(`course-${courseId}`, rootFolderId);
+          }
+        } catch (error) {
+          console.warn('Failed to create course folder on Google Drive:', error.message);
+        }
+      }
+
+      try {
+        const img = req.files.image[0];
+        const uploaded = await uploadBufferToDrive({
+          buffer: img.buffer,
+          name: `course-image-${Date.now()}-${img.originalname}`,
+          mimeType: img.mimetype,
+          folderId: courseFolderId
+        });
+        
+        // Store the URL based on storage type
+        if (uploaded.storageType === 'local') {
+          course.thumbnail = uploaded.url;
+          course.thumbnailStorageType = 'local';
+        } else {
+          course.thumbnail = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+          course.thumbnailStorageType = 'google-drive';
+        }
+        
+        console.log(`✅ Course image updated (${uploaded.storageType}): ${course.thumbnail}`);
+      } catch (error) {
+        console.error('Image upload error:', error);
+      }
     }
 
     // Handle PDF files - add/update resources in course materials module
@@ -614,7 +659,14 @@ exports.addLesson = async (req, res) => {
       resources: [],
     };
 
-    if (type === 'video' && req.files?.video) {
+    // Handle video link (external like YouTube/Vimeo)
+    if (type === 'video' && req.body.videoLink) {
+      lesson.videoLink = req.body.videoLink;
+      lesson.videoStorageType = 'external';
+      console.log(`✅ Video link added: ${req.body.videoLink}`);
+    }
+    // Handle video file upload
+    else if (type === 'video' && req.files?.video) {
       const vid = req.files.video[0];
       const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
 
@@ -759,15 +811,104 @@ exports.getDashboardStats = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalCourses = await Course.countDocuments();
     const totalOrders = await Order.countDocuments();
-    const totalRevenue = await Order.aggregate([
+    
+    // Calculate revenue from both orders and course enrollments
+    const orderRevenue = await Order.aggregate([
       { $match: { paymentStatus: 'completed' } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } },
     ]);
+
+    const enrollmentRevenue = await Enrollment.aggregate([
+      { $match: { status: 'approved', paymentStatus: 'verified' } },
+      { $group: { _id: null, total: { $sum: '$paymentAmount' } } },
+    ]);
+
+    const totalRevenue = (orderRevenue[0]?.total || 0) + (enrollmentRevenue[0]?.total || 0);
+
+    // Get enrollment stats
+    const totalEnrollments = await Enrollment.countDocuments({ status: 'approved' });
+    const pendingEnrollments = await Enrollment.countDocuments({ status: 'pending' });
 
     const recentOrders = await Order.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .limit(10);
+
+    // Get recent enrollments
+    const recentEnrollments = await Enrollment.find({ status: 'approved' })
+      .populate('user', 'name email')
+      .populate('course', 'title price')
+      .sort({ reviewedAt: -1 })
+      .limit(10);
+
+    // Get monthly revenue data for charts (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyEnrollmentRevenue = await Enrollment.aggregate([
+      {
+        $match: {
+          status: 'approved',
+          paymentStatus: 'verified',
+          reviewedAt: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$reviewedAt' },
+            month: { $month: '$reviewedAt' }
+          },
+          revenue: { $sum: '$paymentAmount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    const monthlyOrderRevenue = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: 'completed',
+          createdAt: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          revenue: { $sum: '$totalAmount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    // Merge monthly data
+    const monthlyData = {};
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    monthlyEnrollmentRevenue.forEach(item => {
+      const key = `${item._id.year}-${item._id.month}`;
+      if (!monthlyData[key]) {
+        monthlyData[key] = { month: monthNames[item._id.month - 1], revenue: 0, enrollments: 0, orders: 0 };
+      }
+      monthlyData[key].revenue += item.revenue;
+      monthlyData[key].enrollments = item.count;
+    });
+
+    monthlyOrderRevenue.forEach(item => {
+      const key = `${item._id.year}-${item._id.month}`;
+      if (!monthlyData[key]) {
+        monthlyData[key] = { month: monthNames[item._id.month - 1], revenue: 0, enrollments: 0, orders: 0 };
+      }
+      monthlyData[key].revenue += item.revenue;
+      monthlyData[key].orders = item.count;
+    });
+
+    const revenueChart = Object.values(monthlyData);
 
     res.status(200).json({
       success: true,
@@ -775,11 +916,16 @@ exports.getDashboardStats = async (req, res) => {
         totalUsers,
         totalCourses,
         totalOrders,
-        totalRevenue: totalRevenue[0]?.total || 0,
+        totalRevenue,
+        totalEnrollments,
+        pendingEnrollments,
         recentOrders,
+        recentEnrollments,
+        revenueChart,
       },
     });
   } catch (error) {
+    console.error('Dashboard stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats',

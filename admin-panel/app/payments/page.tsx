@@ -11,6 +11,7 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { getAssetUrl } from '@/lib/assets';
 
 interface PaymentProof {
   url: string;
@@ -337,7 +338,7 @@ export default function PaymentsPage() {
 
                     {enrollment.paymentProof && (
                       <a
-                        href={`${process.env.NEXT_PUBLIC_API_URL}${enrollment.paymentProof.url}`}
+                        href={getAssetUrl(enrollment.paymentProof.url) || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -379,11 +380,23 @@ export default function PaymentsPage() {
                 {selectedEnrollment.paymentProof && (
                   <div className="mb-6">
                     <h3 className="font-semibold text-gray-700 mb-2">Payment Proof</h3>
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${selectedEnrollment.paymentProof.url}`}
-                      alt="Payment Proof"
-                      className="max-w-full h-auto rounded-lg border border-gray-300"
-                    />
+                    <div className="border border-gray-300 rounded-lg p-2 bg-gray-50">
+                      <img
+                        src={getAssetUrl(selectedEnrollment.paymentProof.url) || ''}
+                        alt="Payment Proof"
+                        className="max-w-full h-auto rounded-lg"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect fill="%23f3f4f6" width="400" height="300"/><text x="50%" y="50%" text-anchor="middle" fill="%239ca3af" font-size="16">Image failed to load</text></svg>';
+                        }}
+                      />
+                      <p className="text-sm text-gray-600 mt-2">
+                        <strong>Filename:</strong> {selectedEnrollment.paymentProof.filename}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Uploaded:</strong> {new Date(selectedEnrollment.paymentProof.uploadedAt).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 )}
 
