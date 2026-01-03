@@ -4,7 +4,7 @@ const pageBackgroundSchema = new mongoose.Schema(
   {
     pageName: {
       type: String,
-      enum: ['course', 'shop', 'contact'],
+      enum: ['course', 'shop', 'contact', 'about'],
       unique: true,
       required: [true, 'Please specify which page this background is for'],
     },
