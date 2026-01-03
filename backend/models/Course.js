@@ -53,6 +53,10 @@ const courseSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    introVideoLink: {
+      type: String,
+      description: 'Video link (YouTube, Vimeo, or direct URL) to be shown upon enrollment',
+    },
     modules: [
       {
         title: String,

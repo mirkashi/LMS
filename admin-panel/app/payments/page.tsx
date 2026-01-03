@@ -179,7 +179,7 @@ export default function PaymentsPage() {
     return (
       enrollment.user.name.toLowerCase().includes(searchLower) ||
       enrollment.user.email.toLowerCase().includes(searchLower) ||
-      enrollment.course.title.toLowerCase().includes(searchLower)
+      enrollment.course?.title?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -284,7 +284,7 @@ export default function PaymentsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="text-sm font-medium text-gray-700">Course:</span>
-                      <p className="text-gray-900">{enrollment.course.title}</p>
+                      <p className="text-gray-900">{enrollment.course?.title || 'N/A'}</p>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Payment Method:</span>
@@ -371,8 +371,8 @@ export default function PaymentsPage() {
 
                   <div>
                     <h3 className="font-semibold text-gray-700 mb-2">Course Information</h3>
-                    <p><strong>Course:</strong> {selectedEnrollment.course.title}</p>
-                    <p><strong>Price:</strong> PKR {selectedEnrollment.course.price.toLocaleString()}</p>
+                    <p><strong>Course:</strong> {selectedEnrollment.course?.title || 'N/A'}</p>
+                    <p><strong>Price:</strong> PKR {selectedEnrollment.course?.price?.toLocaleString?.() || 'N/A'}</p>
                     <p><strong>Amount Paid:</strong> PKR {selectedEnrollment.paymentAmount.toLocaleString()}</p>
                   </div>
                 </div>

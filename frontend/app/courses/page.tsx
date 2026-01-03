@@ -8,28 +8,33 @@ export default function Courses() {
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  
-  // Background image URL - You can upload your image and set the URL here
-  // Option 1: Use a local image from /public folder: '/images/courses-bg.jpg'
-  // Option 2: Use an external URL: 'https://example.com/image.jpg'
-  // Option 3: Leave empty '' to use gradient only
-  const headerBackgroundImage = 'https://tse3.mm.bing.net/th/id/OIP.pMqmjKkli0zmuZ0PzZcoDgHaFj?w=768&h=576&rs=1&pid=ImgDetMain&o=7&rm=3'; // <-- UPLOAD YOUR IMAGE URL HERE
+  const [headerBackgroundImage, setHeaderBackgroundImage] = useState('');
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`);
-        const data = await response.json();
-        if (data.success) {
-          setCourses(data.data);
-          setFilteredCourses(data.data);
+        // Fetch courses
+        const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`);
+        const coursesData = await coursesResponse.json();
+        if (coursesData.success) {
+          setCourses(coursesData.data);
+          setFilteredCourses(coursesData.data);
+        }
+
+        // Fetch page background
+        const backgroundResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/page-backgrounds/course`);
+        if (backgroundResponse.ok) {
+          const backgroundData = await backgroundResponse.json();
+          if (backgroundData.success && backgroundData.data) {
+            setHeaderBackgroundImage(backgroundData.data.imageUrl);
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch courses:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
 
-    fetchCourses();
+    fetchData();
   }, []);
 
   useEffect(() => {

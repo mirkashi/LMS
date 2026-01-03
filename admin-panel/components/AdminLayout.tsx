@@ -54,6 +54,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     { name: 'Payment Received', href: '/payments', icon: CreditCardIcon },
     { name: 'Enrollments', href: '/enrollments', icon: AcademicCapIcon },
     { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
+    { name: 'Page Backgrounds', href: '/page-backgrounds', icon: Cog6ToothIcon },
     { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
   ];
 

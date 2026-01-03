@@ -60,7 +60,7 @@ exports.getAllCourses = async (req, res) => {
 // Create Course (Admin)
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, category, price, duration, level, syllabus, isPublished } = req.body;
+    const { title, description, category, price, duration, level, syllabus, isPublished, introVideoLink } = req.body;
     const userId = req.user.userId;
 
     // Validate required fields
@@ -89,6 +89,7 @@ exports.createCourse = async (req, res) => {
       level: level || 'beginner',
       instructor: userId,
       modules: [],
+      introVideoLink: introVideoLink || '',
       isPublished: isPublished === 'true' || isPublished === true, // Handle string 'true' from FormData
     });
 
@@ -218,7 +219,7 @@ exports.createCourse = async (req, res) => {
 exports.updateCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { title, description, category, price, duration, level, isPublished } = req.body;
+    const { title, description, category, price, duration, level, isPublished, introVideoLink } = req.body;
     const userId = req.user.userId;
 
     const course = await Course.findById(courseId);
@@ -244,6 +245,7 @@ exports.updateCourse = async (req, res) => {
     if (duration !== undefined) course.duration = duration;
     if (level) course.level = level;
     if (isPublished !== undefined) course.isPublished = isPublished;
+    if (introVideoLink !== undefined) course.introVideoLink = introVideoLink;
 
     // Handle image upload (frontend sends 'image', we store as 'thumbnail')
     if (req.files && req.files.image && req.files.image[0]) {

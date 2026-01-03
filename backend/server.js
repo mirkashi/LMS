@@ -66,6 +66,8 @@ app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/media', require('./routes/mediaRoutes'));
 app.use('/api/progress', require('./routes/progressRoutes'));
+app.use('/api/video-progress', require('./routes/videoProgressRoutes'));
+app.use('/api/page-backgrounds', require('./routes/pageBackgroundRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppImage from '@/components/AppImage';
+import VideoPlayer from '@/components/VideoPlayer';
 import EnrollmentPaymentModal from '@/components/EnrollmentPaymentModal';
 import { getAssetUrl } from '@/lib/assets';
 
@@ -168,6 +169,18 @@ export default function CourseDetail() {
                     className="w-full h-96 object-cover rounded-lg mb-6"
                   />
                 )}
+
+                {/* Intro Video Section - Shown to Enrolled Users */}
+                {course.isEnrolled && course.introVideoLink && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Course Introduction</h3>
+                    <VideoPlayer
+                      courseId={courseId}
+                      videoLink={course.introVideoLink}
+                    />
+                  </div>
+                )}
+
                 {/* Video Player */}
                 {activeVideoUrl && !activeVideoLink && (
                   <div className="mb-6">

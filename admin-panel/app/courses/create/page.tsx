@@ -31,6 +31,7 @@ interface FormData {
   prerequisites: string;
   whatYouWillLearn: string[];
   targetAudience: string;
+  introVideoLink: string;
   thumbnail: File | null;
   video: File | null;
   documents: File[];
@@ -55,6 +56,7 @@ export default function CreateCoursePage() {
     prerequisites: '',
     whatYouWillLearn: [''],
     targetAudience: '',
+    introVideoLink: '',
     thumbnail: null,
     video: null,
     documents: [],
@@ -290,6 +292,7 @@ export default function CreateCoursePage() {
       formDataToSend.append('prerequisites', formData.prerequisites);
       formDataToSend.append('whatYouWillLearn', JSON.stringify(formData.whatYouWillLearn.filter(item => item.trim())));
       formDataToSend.append('targetAudience', formData.targetAudience);
+      formDataToSend.append('introVideoLink', formData.introVideoLink);
       formDataToSend.append('isPublished', formData.isPublished.toString());
       formDataToSend.append('accessLevel', formData.accessLevel);
       if (formData.scheduledPublishDate) {
@@ -923,6 +926,23 @@ export default function CreateCoursePage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="What students need to know before taking this course..."
                 />
+              </div>
+
+              {/* Intro Video Link */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Intro Video Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={formData.introVideoLink}
+                  onChange={(e) => setFormData({ ...formData, introVideoLink: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://vimeo.com/..."
+                />
+                <p className="mt-2 text-sm text-gray-600">
+                  ℹ️ This video will be shown to enrolled students. Supports YouTube, Vimeo, or direct video URLs.
+                </p>
               </div>
 
               {/* Publishing Options */}
