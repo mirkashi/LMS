@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -19,10 +19,39 @@ const staggerContainer = {
 };
 
 export default function About() {
+  const [headerBackgroundImage, setHeaderBackgroundImage] = useState('');
+
+  useEffect(() => {
+    const fetchBackgroundImage = async () => {
+      try {
+        const backgroundResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/page-backgrounds/about`);
+        if (backgroundResponse.ok) {
+          const backgroundData = await backgroundResponse.json();
+          if (backgroundData.success && backgroundData.data) {
+            setHeaderBackgroundImage(backgroundData.data.imageUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch background image:', error);
+      }
+    };
+
+    fetchBackgroundImage();
+  }, []);
+
   return (
     <main className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative py-24 bg-gray-900 overflow-hidden">
+      <section 
+        className="relative py-24 overflow-hidden"
+        style={{
+          backgroundImage: headerBackgroundImage ? `url('${headerBackgroundImage}')` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: 'rgb(17, 24, 39)',
+        }}
+      >
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 mix-blend-multiply" />
         </div>

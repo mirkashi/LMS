@@ -214,6 +214,17 @@ export default function CourseDetail() {
                         allowFullScreen
                       ></iframe>
                     </div>
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-sm text-gray-600">Video Link:</p>
+                      <a 
+                        href={activeVideoLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all text-sm"
+                      >
+                        {activeVideoLink}
+                      </a>
+                    </div>
                   </div>
                 )}
                 <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
@@ -440,7 +451,7 @@ export default function CourseDetail() {
               <div className="md:col-span-1">
                 <div className="bg-white rounded-lg shadow-lg p-6 sticky top-20">
                   <div className="text-4xl font-bold text-primary mb-6">
-                    ${course.price}
+                    PKR {course.price}
                   </div>
 
                   <button

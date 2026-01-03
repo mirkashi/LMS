@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import AppImage from '@/components/AppImage';
 
 export default function Home() {
   const [courses, setCourses] = useState([]);
@@ -213,8 +214,8 @@ export default function Home() {
               >
                 <div className="relative h-48 overflow-hidden">
                   {course.thumbnail ? (
-                    <img
-                      src={course.thumbnail}
+                    <AppImage
+                      path={course.thumbnail}
                       alt={course.title}
                       className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500"
                     />

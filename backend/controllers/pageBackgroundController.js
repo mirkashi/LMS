@@ -7,10 +7,10 @@ exports.getPageBackground = async (req, res) => {
     const { pageName } = req.params;
 
     // Validate page name
-    if (!['course', 'shop', 'contact'].includes(pageName)) {
+    if (!['course', 'shop', 'contact', 'about'].includes(pageName)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid page name. Must be one of: course, shop, contact',
+        message: 'Invalid page name. Must be one of: course, shop, contact, about',
       });
     }
 
@@ -67,11 +67,11 @@ exports.uploadPageBackground = async (req, res) => {
     console.log('Upload request - pageName:', pageName, 'file:', req.file?.filename, 'user:', userId);
 
     // Validate required fields
-    if (!pageName || !['course', 'shop', 'contact'].includes(pageName)) {
+    if (!pageName || !['course', 'shop', 'contact', 'about'].includes(pageName)) {
       console.error('Invalid page name:', pageName);
       return res.status(400).json({
         success: false,
-        message: 'Invalid page name. Must be one of: course, shop, contact',
+        message: 'Invalid page name. Must be one of: course, shop, contact, about',
       });
     }
 
@@ -201,10 +201,10 @@ exports.deletePageBackground = async (req, res) => {
   try {
     const { pageName } = req.params;
 
-    if (!['course', 'shop', 'contact'].includes(pageName)) {
+    if (!['course', 'shop', 'contact', 'about'].includes(pageName)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid page name. Must be one of: course, shop, contact',
+        message: 'Invalid page name. Must be one of: course, shop, contact, about',
       });
     }
 

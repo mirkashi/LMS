@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function Contact() {
@@ -11,6 +11,25 @@ export default function Contact() {
     message: ''
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [headerBackgroundImage, setHeaderBackgroundImage] = useState('');
+
+  useEffect(() => {
+    const fetchBackgroundImage = async () => {
+      try {
+        const backgroundResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/page-backgrounds/contact`);
+        if (backgroundResponse.ok) {
+          const backgroundData = await backgroundResponse.json();
+          if (backgroundData.success && backgroundData.data) {
+            setHeaderBackgroundImage(backgroundData.data.imageUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch background image:', error);
+      }
+    };
+
+    fetchBackgroundImage();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,22 +45,34 @@ export default function Contact() {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gray-900 py-20 text-center">
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-bold text-white mb-4"
-        >
-          Get in Touch
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-gray-400 text-lg max-w-2xl mx-auto px-4"
-        >
-          Have questions about our courses or need support? We're here to help.
-        </motion.p>
+      <section 
+        className="relative py-20 text-center overflow-hidden"
+        style={{
+          backgroundImage: headerBackgroundImage ? `url('${headerBackgroundImage}')` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: 'rgb(17, 24, 39)',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="relative z-10">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-bold text-white mb-4"
+          >
+            Get in Touch
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-gray-200 text-lg max-w-2xl mx-auto px-4"
+          >
+            Have questions about our courses or need support? We're here to help.
+          </motion.p>
+        </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

@@ -19,6 +19,7 @@ export default function Shop() {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [headerBackgroundImage, setHeaderBackgroundImage] = useState('');
   // Placeholder image URL lives here
   const heroBackground = 'https://images.pexels.com/photos/5625070/pexels-photo-5625070.jpeg';
   const itemsPerPage = 15;
@@ -39,7 +40,22 @@ export default function Shop() {
       }
     };
 
+    const fetchBackgroundImage = async () => {
+      try {
+        const backgroundResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/page-backgrounds/shop`);
+        if (backgroundResponse.ok) {
+          const backgroundData = await backgroundResponse.json();
+          if (backgroundData.success && backgroundData.data) {
+            setHeaderBackgroundImage(backgroundData.data.imageUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch background image:', error);
+      }
+    };
+
     fetchProducts();
+    fetchBackgroundImage();
   }, []);
 
   useEffect(() => {
@@ -125,7 +141,7 @@ export default function Shop() {
       <div className="relative overflow-hidden">
         <div
           className="absolute inset-0 bg-center bg-cover"
-          style={{ backgroundImage: `url(${heroBackground})` }}
+          style={{ backgroundImage: `url(${headerBackgroundImage || heroBackground})` }}
           role="img"
           aria-label="Collection cover"
         />

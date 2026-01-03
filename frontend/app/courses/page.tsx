@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import AppImage from '@/components/AppImage';
 
 export default function Courses() {
   const [courses, setCourses] = useState([]);
@@ -149,14 +150,10 @@ export default function Courses() {
                       className="bg-white rounded-lg shadow-lg hover:shadow-2xl transition overflow-hidden"
                     >
                       {course.thumbnail && (
-                        <img
-                          src={course.thumbnail}
+                        <AppImage
+                          path={course.thumbnail}
                           alt={course.title}
                           className="w-full h-48 object-cover"
-                          onError={(e) => {
-                            // Fallback if image fails to load
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Course+Image';
-                          }}
                         />
                       )}
                       <div className="p-6">
@@ -182,7 +179,7 @@ export default function Courses() {
                         </div>
                         <div className="flex justify-between items-center mb-4">
                           <span className="text-2xl font-bold text-primary">
-                            ${course.price}
+                            PKR {course.price}
                           </span>
                           <span className="text-sm text-gray-600">
                             {course.students?.length || 0} students

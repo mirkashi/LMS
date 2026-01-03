@@ -12,7 +12,7 @@ import {
 
 interface PageBackground {
   _id: string;
-  pageName: 'course' | 'shop' | 'contact';
+  pageName: 'course' | 'shop' | 'contact' | 'about';
   imageUrl: string;
   alt: string;
   description?: string;
@@ -36,7 +36,7 @@ interface UploadState {
 
 export default function PageBackgroundsPage() {
   const [backgrounds, setBackgrounds] = useState<PageBackground[]>([]);
-  const [selectedPage, setSelectedPage] = useState<'course' | 'shop' | 'contact'>('course');
+  const [selectedPage, setSelectedPage] = useState<'course' | 'shop' | 'contact' | 'about'>('course');
   const [uploadState, setUploadState] = useState<UploadState>({
     file: null,
     preview: null,
@@ -52,6 +52,7 @@ export default function PageBackgroundsPage() {
   const pages = [
     { value: 'course', label: 'Course Page', icon: '📚' },
     { value: 'shop', label: 'Shop Page', icon: '🛍️' },
+    { value: 'about', label: 'About Page', icon: 'ℹ️' },
     { value: 'contact', label: 'Contact Page', icon: '📧' },
   ] as const;
 

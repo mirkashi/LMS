@@ -17,6 +17,7 @@ export default function CreateCourse() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -68,7 +69,11 @@ export default function CreateCourse() {
 
       if (response.ok) {
         const data = await response.json();
-        router.push(`/admin/courses/${data.data._id}/edit`);
+        setShowSuccess(true);
+        // Show success message for 2 seconds before redirecting
+        setTimeout(() => {
+          router.push(`/admin/courses/${data.data._id}/edit`);
+        }, 2000);
       } else {
         const data = await response.json();
         setError(data.message || 'Failed to create course');
@@ -91,6 +96,15 @@ export default function CreateCourse() {
             {error && (
               <div className="p-4 bg-red-100 text-red-700 rounded-lg mb-6">
                 {error}
+              </div>
+            )}
+
+            {showSuccess && (
+              <div className="p-4 bg-green-100 text-green-700 rounded-lg mb-6 flex items-center">
+                <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>✅ Course created successfully! Redirecting to edit page...</span>
               </div>
             )}
 
@@ -143,7 +157,7 @@ export default function CreateCourse() {
 
                 <div>
                   <label className="block text-sm font-semibold mb-2">
-                    Price ($)
+                    Price (PKR)
                   </label>
                   <input
                     type="number"
@@ -195,10 +209,10 @@ export default function CreateCourse() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || showSuccess}
                 className="w-full py-3 bg-gradient-primary text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
               >
-                {loading ? 'Creating...' : 'Create Course'}
+                {loading ? 'Creating...' : showSuccess ? '✓ Course Created!' : 'Create Course'}
               </button>
             </form>
           </div>
