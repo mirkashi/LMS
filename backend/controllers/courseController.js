@@ -87,6 +87,8 @@ exports.getCourseById = async (req, res) => {
       students: course.students,
       isEnrolled,
       enrollmentStatus,
+      introVideoLink: course.introVideoLink, // Show intro video link to all users
+      introVideoUrl: course.introVideoUrl, // Show uploaded intro video to all users
       createdAt: course.createdAt,
     };
 

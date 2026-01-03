@@ -77,6 +77,8 @@ export default function CreateCoursePage() {
     documents: false,
   });
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
   const thumbnailRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const documentsRef = useRef<HTMLInputElement>(null);
@@ -303,7 +305,9 @@ export default function CreateCoursePage() {
       if (formData.thumbnail) {
         formDataToSend.append('image', formData.thumbnail);
       }
-      // Note: Video is not supported in course creation, only in lessons
+      if (formData.video) {
+        formDataToSend.append('video', formData.video);
+      }
       formData.documents.forEach((doc, index) => {
         formDataToSend.append('pdfFiles', doc);
       });
@@ -322,7 +326,8 @@ export default function CreateCoursePage() {
       if (response.ok) {
         localStorage.removeItem('courseDraft');
         const data = await response.json();
-        router.push(`/courses/${data.data._id}/edit`);
+        setCreatedCourseId(data.data._id);
+        setShowSuccessModal(true);
       } else {
         const error = await response.json();
         setErrors({ submit: error.message || 'Failed to create course' });
@@ -1037,6 +1042,42 @@ export default function CreateCoursePage() {
           </div>
         </form>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <CheckCircleIcon className="h-10 w-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Course Created Successfully!</h3>
+              <p className="text-gray-600 mb-6">
+                Your course has been created and is ready for students. You can now add modules and lessons.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => router.push('/courses')}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  View All Courses
+                </button>
+                <button
+                  onClick={() => {
+                    if (createdCourseId) {
+                      router.push(`/courses`);
+                    }
+                  }}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add Content
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
+

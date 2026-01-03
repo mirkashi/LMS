@@ -147,6 +147,37 @@ exports.createCourse = async (req, res) => {
       }
     }
 
+    // Handle video upload
+    if (req.files && req.files.video && req.files.video[0]) {
+      try {
+        const video = req.files.video[0];
+        const uploaded = await uploadBufferToDrive({
+          buffer: video.buffer,
+          name: `course-intro-video-${Date.now()}-${video.originalname}`,
+          mimeType: video.mimetype,
+          folderId: courseFolderId
+        });
+        
+        // Store the URL based on storage type
+        if (uploaded.storageType === 'local') {
+          course.introVideoUrl = uploaded.url;
+          course.introVideoStorageType = 'local';
+        } else {
+          course.introVideoUrl = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+          course.introVideoStorageType = 'google-drive';
+        }
+        
+        console.log(`✅ Course intro video uploaded successfully (${uploaded.storageType}): ${course.introVideoUrl}`);
+      } catch (error) {
+        console.error('Video upload error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload course video. Please try again.',
+          error: error.message,
+        });
+      }
+    }
+
     // Handle PDF files - store as resources in a dedicated module
     if (req.files && req.files.pdfFiles && req.files.pdfFiles.length > 0) {
       const pdfUrls = [];
@@ -287,6 +318,49 @@ exports.updateCourse = async (req, res) => {
         console.log(`✅ Course image updated (${uploaded.storageType}): ${course.thumbnail}`);
       } catch (error) {
         console.error('Image upload error:', error);
+      }
+    }
+
+    // Handle video upload
+    if (req.files && req.files.video && req.files.video[0]) {
+      const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
+      
+      // Get or create course folder
+      let courseFolderId = null;
+      const driveConfigured = isGoogleDriveConfigured();
+      
+      if (driveConfigured) {
+        try {
+          const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+          if (rootFolderId) {
+            courseFolderId = await createFolderIfNotExists(`course-${courseId}`, rootFolderId);
+          }
+        } catch (error) {
+          console.warn('Failed to create course folder on Google Drive:', error.message);
+        }
+      }
+
+      try {
+        const video = req.files.video[0];
+        const uploaded = await uploadBufferToDrive({
+          buffer: video.buffer,
+          name: `course-intro-video-${Date.now()}-${video.originalname}`,
+          mimeType: video.mimetype,
+          folderId: courseFolderId
+        });
+        
+        // Store the URL based on storage type
+        if (uploaded.storageType === 'local') {
+          course.introVideoUrl = uploaded.url;
+          course.introVideoStorageType = 'local';
+        } else {
+          course.introVideoUrl = uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`;
+          course.introVideoStorageType = 'google-drive';
+        }
+        
+        console.log(`✅ Course intro video updated (${uploaded.storageType}): ${course.introVideoUrl}`);
+      } catch (error) {
+        console.error('Video upload error:', error);
       }
     }
 

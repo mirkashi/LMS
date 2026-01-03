@@ -57,6 +57,15 @@ const courseSchema = new mongoose.Schema(
       type: String,
       description: 'Video link (YouTube, Vimeo, or direct URL) to be shown upon enrollment',
     },
+    introVideoUrl: {
+      type: String,
+      description: 'Uploaded intro video URL (stored on server or Google Drive)',
+    },
+    introVideoStorageType: {
+      type: String,
+      enum: ['local', 'google-drive'],
+      default: 'google-drive',
+    },
     modules: [
       {
         title: String,

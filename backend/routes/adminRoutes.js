@@ -56,6 +56,7 @@ router.post(
   adminMiddleware,
   uploadMiddleware.fields([
     { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
     { name: 'pdfFiles', maxCount: 10 }
   ]),
   adminController.createCourse
@@ -67,6 +68,7 @@ router.put(
   adminMiddleware,
   uploadMiddleware.fields([
     { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
     { name: 'pdfFiles', maxCount: 10 }
   ]),
   adminController.updateCourse

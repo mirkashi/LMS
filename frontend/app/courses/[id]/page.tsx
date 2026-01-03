@@ -170,14 +170,51 @@ export default function CourseDetail() {
                   />
                 )}
 
-                {/* Intro Video Section - Shown to Enrolled Users */}
-                {course.isEnrolled && course.introVideoLink && (
+                {/* Intro Video Section - Shown to All Users */}
+                {(course.introVideoLink || course.introVideoUrl) && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Course Introduction</h3>
-                    <VideoPlayer
-                      courseId={courseId}
-                      videoLink={course.introVideoLink}
-                    />
+                    <h3 className="text-lg font-semibold mb-4">Course Introduction Video</h3>
+                    
+                    {/* Show uploaded video if available */}
+                    {course.introVideoUrl && (
+                      <div className="mb-4">
+                        <video
+                          src={`${process.env.NEXT_PUBLIC_API_URL}${course.introVideoUrl}`}
+                          controls
+                          className="w-full rounded-lg bg-black"
+                          poster={course.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${course.thumbnail}` : undefined}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    )}
+                    
+                    {/* Show video link (YouTube, Vimeo, etc.) */}
+                    {course.introVideoLink && !course.introVideoUrl && (
+                      <>
+                        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                          <iframe
+                            src={getEmbedUrl(course.introVideoLink)}
+                            className="w-full h-full"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title="Course Introduction Video"
+                          ></iframe>
+                        </div>
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                          <p className="text-sm text-gray-600">Video Link:</p>
+                          <a 
+                            href={course.introVideoLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline break-all text-sm"
+                          >
+                            {course.introVideoLink}
+                          </a>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
