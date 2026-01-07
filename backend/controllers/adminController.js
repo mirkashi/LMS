@@ -3,6 +3,10 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Enrollment = require('../models/Enrollment');
+const CourseAuditLog = require('../models/CourseAuditLog');
+const PaymentStatusTracking = require('../models/PaymentStatusTracking');
+const courseAuditController = require('./courseAuditController');
+const paymentTrackingController = require('./paymentTrackingController');
 
 const { sendEmailChangeVerification, sendPasswordChangeNotification } = require('../utils/mailer');
 const crypto = require('crypto');
@@ -52,6 +56,36 @@ exports.getAllCourses = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch courses',
+      error: error.message,
+    });
+  }
+};
+
+// Get Single Course (Admin)
+exports.getCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const course = await Course.findById(courseId)
+      .populate('instructor', 'name email avatar')
+      .populate('students', 'name email');
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
+  } catch (error) {
+    console.error('Failed to fetch course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch course',
       error: error.message,
     });
   }
@@ -269,14 +303,72 @@ exports.updateCourse = async (req, res) => {
       });
     }
 
-    if (title) course.title = title;
-    if (description) course.description = description;
-    if (category) course.category = category;
-    if (price !== undefined) course.price = price;
-    if (duration !== undefined) course.duration = duration;
-    if (level) course.level = level;
-    if (isPublished !== undefined) course.isPublished = isPublished;
-    if (introVideoLink !== undefined) course.introVideoLink = introVideoLink;
+    // Track changes for audit log
+    const changes = {
+      before: {},
+      after: {},
+    };
+
+    if (title && title !== course.title) {
+      changes.before.title = course.title;
+      changes.after.title = title;
+      course.title = title;
+    }
+    
+    if (description && description !== course.description) {
+      changes.before.description = course.description;
+      changes.after.description = description;
+      course.description = description;
+    }
+    
+    if (category && category !== course.category) {
+      changes.before.category = course.category;
+      changes.after.category = category;
+      course.category = category;
+    }
+    
+    if (price !== undefined && price !== course.price) {
+      changes.before.price = course.price;
+      changes.after.price = price;
+      course.price = price;
+    }
+    
+    if (duration !== undefined && duration !== course.duration) {
+      changes.before.duration = course.duration;
+      changes.after.duration = duration;
+      course.duration = duration;
+    }
+    
+    if (level && level !== course.level) {
+      changes.before.level = course.level;
+      changes.after.level = level;
+      course.level = level;
+    }
+    
+    if (isPublished !== undefined && isPublished !== course.isPublished) {
+      changes.before.isPublished = course.isPublished;
+      changes.after.isPublished = isPublished;
+      course.isPublished = isPublished;
+    }
+
+    // Validate video link if provided
+    if (introVideoLink && introVideoLink !== course.introVideoLink) {
+      if (!courseAuditController.validateVideoUrl(introVideoLink)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid video URL format. Supported: YouTube, Vimeo, or direct MP4/WebM/OGG links',
+        });
+      }
+
+      // Check for duplicates
+      if (courseAuditController.checkDuplicateVideoLinks(course.modules, introVideoLink)) {
+        console.warn('⚠️ Warning: This video link already exists in course modules');
+      }
+
+      changes.before.introVideoLink = course.introVideoLink;
+      changes.after.introVideoLink = introVideoLink;
+      course.introVideoLink = introVideoLink;
+    }
 
     // Handle image upload (frontend sends 'image', we store as 'thumbnail')
     if (req.files && req.files.image && req.files.image[0]) {
@@ -396,6 +488,18 @@ exports.updateCourse = async (req, res) => {
     }
 
     await course.save();
+
+    // Log the changes to audit trail
+    if (Object.keys(changes.after).length > 0) {
+      await courseAuditController.logCourseChange(
+        courseId,
+        userId,
+        'updated',
+        changes,
+        'Course updated via admin panel',
+        req
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -1352,6 +1456,15 @@ exports.approveEnrollment = async (req, res) => {
     enrollment.reviewedBy = adminId;
     await enrollment.save();
 
+    // Track payment status
+    await paymentTrackingController.trackPaymentStatus(
+      enrollmentId,
+      'approved',
+      {
+        approvedBy: adminId
+      }
+    );
+
     // Add user to course students
     const course = await Course.findById(enrollment.course);
     if (!course.students.includes(enrollment.user)) {
@@ -1372,7 +1485,7 @@ exports.approveEnrollment = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Enrollment approved for ${enrollment.user.name} in ${enrollment.course.title}`,
+      message: `✅ Enrollment approved for ${enrollment.user.name} in ${enrollment.course.title}`,
       data: enrollment,
     });
   } catch (error) {
@@ -1389,7 +1502,7 @@ exports.approveEnrollment = async (req, res) => {
 exports.rejectEnrollment = async (req, res) => {
   try {
     const { enrollmentId } = req.params;
-    const { reason } = req.body;
+    const { reason, rejectionReason } = req.body;
     const adminId = req.user.userId;
 
     const enrollment = await Enrollment.findById(enrollmentId);
@@ -1413,8 +1526,19 @@ exports.rejectEnrollment = async (req, res) => {
     enrollment.paymentStatus = 'rejected';
     enrollment.reviewedAt = new Date();
     enrollment.reviewedBy = adminId;
-    enrollment.rejectionReason = reason || 'No reason provided';
+    enrollment.rejectionReason = reason || rejectionReason || 'No reason provided';
     await enrollment.save();
+
+    // Track payment status with rejection reason
+    await paymentTrackingController.trackPaymentStatus(
+      enrollmentId,
+      'rejected',
+      {
+        rejectedBy: adminId,
+        rejectionReason: rejectionReason || 'payment_rejected',
+        rejectionNotes: reason || rejectionReason || 'No additional notes'
+      }
+    );
 
     // Populate enrollment details for response
     await enrollment.populate('user', 'name email');
@@ -1422,7 +1546,7 @@ exports.rejectEnrollment = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Enrollment rejected for ${enrollment.user.name} in ${enrollment.course.title}`,
+      message: `❌ Enrollment rejected for ${enrollment.user.name} in ${enrollment.course.title}`,
       data: enrollment,
     });
   } catch (error) {

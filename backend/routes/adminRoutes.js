@@ -50,6 +50,13 @@ router.get(
   adminController.getAllCourses
 );
 
+router.get(
+  '/courses/:courseId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getCourseById
+);
+
 router.post(
   '/courses',
   authMiddleware,

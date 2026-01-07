@@ -320,6 +320,27 @@ export default function CourseDetail() {
                                     <p className="text-sm text-gray-600">
                                       {lesson.duration} minutes
                                     </p>
+                                    
+                                    {/* Show video link if available */}
+                                    {lesson.videoLink && (
+                                      <a
+                                        href={lesson.videoLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline text-sm block mt-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        🔗 External Video Link
+                                      </a>
+                                    )}
+                                    
+                                    {/* Show video URL if available */}
+                                    {lesson.videoUrl && (
+                                      <span className="text-green-600 text-sm block mt-1">
+                                        ✓ Video Available
+                                      </span>
+                                    )}
+                                    
                                     {/* Show download links for resources */}
                                     {lesson.resources && lesson.resources.length > 0 && (
                                       <div className="mt-2 space-y-1">
@@ -330,6 +351,7 @@ export default function CourseDetail() {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:underline text-sm block"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
                                             📎 {resource.name} ({((resource.size || 0) / 1024 / 1024).toFixed(2)} MB)
                                           </a>
@@ -343,6 +365,7 @@ export default function CourseDetail() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline text-sm block mt-1"
+                                        onClick={(e) => e.stopPropagation()}
                                       >
                                         📎 Download PDF
                                       </a>

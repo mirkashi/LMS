@@ -20,7 +20,10 @@ export default function Contact() {
         if (backgroundResponse.ok) {
           const backgroundData = await backgroundResponse.json();
           if (backgroundData.success && backgroundData.data) {
-            setHeaderBackgroundImage(backgroundData.data.imageUrl);
+            const imageUrl = backgroundData.data.imageUrl;
+            // Add API URL prefix if the URL is a relative path
+            const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
+            setHeaderBackgroundImage(fullImageUrl);
           }
         }
       } catch (error) {
