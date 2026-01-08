@@ -121,13 +121,13 @@ async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
   }
 }
 
-async function uploadBufferToDrive({ buffer, name, mimeType, folderId, retries = 3 }) {
+async function uploadBufferToDrive({ buffer, name, mimeType, folderId, subfolder = 'courses', retries = 3 }) {
   const drive = getDriveClient();
 
   // If Google Drive is not configured, save locally
   if (!drive) {
     console.log(`📁 Saving file locally: ${name}`);
-    return await saveFileLocally({ buffer, name });
+    return await saveFileLocally({ buffer, name, subfolder });
   }
 
   let lastError;
@@ -182,7 +182,7 @@ async function uploadBufferToDrive({ buffer, name, mimeType, folderId, retries =
   // If all Google Drive attempts failed, fallback to local storage
   console.warn(`⚠️  Google Drive upload failed after ${retries} attempts. Saving locally as fallback.`);
   console.warn(`Error: ${lastError.message}`);
-  return await saveFileLocally({ buffer, name });
+  return await saveFileLocally({ buffer, name, subfolder });
 }
 
 // Stream a Drive file through our backend, supporting range requests

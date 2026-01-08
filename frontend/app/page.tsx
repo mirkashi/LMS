@@ -5,10 +5,34 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import AppImage from '@/components/AppImage';
 
+type HomePageContent = {
+  heroBadgeText?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroPrimaryCtaLabel?: string;
+  heroPrimaryCtaHref?: string;
+  heroSecondaryCtaLabel?: string;
+  heroSecondaryCtaHref?: string;
+  heroImageUrl?: string;
+};
+
 export default function Home() {
   const [courses, setCourses] = useState([]);
+  const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
 
   useEffect(() => {
+    const fetchHomeContent = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/homepage-content`);
+        const data = await response.json();
+        if (data?.success) {
+          setHomeContent(data.data || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch homepage content:', error);
+      }
+    };
+
     const fetchCourses = async () => {
       try {
         const response = await fetch(
@@ -23,8 +47,20 @@ export default function Home() {
       }
     };
 
+    fetchHomeContent();
     fetchCourses();
   }, []);
+
+  const heroBadgeText = homeContent?.heroBadgeText || '🚀 #1 Platform for eBay Sellers';
+  const heroTitle = homeContent?.heroTitle || 'Master the Art of Online Selling';
+  const heroSubtitle =
+    homeContent?.heroSubtitle ||
+    'Unlock your potential with expert-led courses, premium resources, and a community of successful entrepreneurs.';
+  const heroPrimaryCtaLabel = homeContent?.heroPrimaryCtaLabel || 'Start Learning';
+  const heroPrimaryCtaHref = homeContent?.heroPrimaryCtaHref || '/courses';
+  const heroSecondaryCtaLabel = homeContent?.heroSecondaryCtaLabel || 'Browse Shop';
+  const heroSecondaryCtaHref = homeContent?.heroSecondaryCtaHref || '/shop';
+  const heroImageUrl = homeContent?.heroImageUrl || '';
 
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -44,8 +80,16 @@ export default function Home() {
     <div className="overflow-hidden">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white min-h-[90vh] flex items-center overflow-hidden">
+        {heroImageUrl ? (
+          <AppImage
+            path={heroImageUrl}
+            alt="Homepage hero background"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-blue-900/50"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 via-blue-900/55 to-blue-900/70"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -55,29 +99,31 @@ export default function Home() {
               transition={{ duration: 0.8 }}
             >
               <span className="inline-block py-1 px-3 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium mb-6 backdrop-blur-sm">
-                🚀 #1 Platform for eBay Sellers
+                {heroBadgeText}
               </span>
               <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-                Master the Art of <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-cyan-200">
-                  Online Selling
-                </span>
+                {heroTitle.split('\n').map((line, idx, arr) => (
+                  <span key={idx}>
+                    {line}
+                    {idx < arr.length - 1 ? <br /> : null}
+                  </span>
+                ))}
               </h1>
               <p className="text-xl text-blue-100 mb-8 leading-relaxed max-w-lg">
-                Unlock your potential with expert-led courses, premium resources, and a community of successful entrepreneurs.
+                {heroSubtitle}
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="/courses"
+                  href={heroPrimaryCtaHref}
                   className="px-8 py-4 bg-white text-blue-900 font-bold rounded-xl hover:bg-blue-50 transition transform hover:-translate-y-1 shadow-lg shadow-blue-900/20"
                 >
-                  Start Learning
+                  {heroPrimaryCtaLabel}
                 </Link>
                 <Link
-                  href="/shop"
+                  href={heroSecondaryCtaHref}
                   className="px-8 py-4 bg-blue-700/30 border border-blue-400/30 text-white font-bold rounded-xl hover:bg-blue-700/50 transition backdrop-blur-sm"
                 >
-                  Browse Shop
+                  {heroSecondaryCtaLabel}
                 </Link>
               </div>
               

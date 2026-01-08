@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
+import AppImage from '@/components/AppImage';
+import { motion } from 'framer-motion';
 import {
   UsersIcon,
   BookOpenIcon,
@@ -31,12 +33,41 @@ import {
   Legend,
 } from 'recharts';
 
+type HomePageContent = {
+  heroBadgeText?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroPrimaryCtaLabel?: string;
+  heroPrimaryCtaHref?: string;
+  heroSecondaryCtaLabel?: string;
+  heroSecondaryCtaHref?: string;
+  heroImageUrl?: string;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any>(null);
+  const [homeContent, setHomeContent] = useState<HomePageContent | null>(null);
+  const [homeForm, setHomeForm] = useState<Required<Omit<HomePageContent, 'heroImageUrl'>>>({
+    heroBadgeText: '🚀 #1 Platform for eBay Sellers',
+    heroTitle: 'Master the Art of Online Selling',
+    heroSubtitle:
+      'Unlock your potential with expert-led courses, premium resources, and a community of successful entrepreneurs.',
+    heroPrimaryCtaLabel: 'Start Learning',
+    heroPrimaryCtaHref: '/courses',
+    heroSecondaryCtaLabel: 'Browse Shop',
+    heroSecondaryCtaHref: '/shop',
+  });
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  const [homeSaveState, setHomeSaveState] = useState<{ loading: boolean; error: string; success: string }>({
+    loading: false,
+    error: '',
+    success: '',
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -51,6 +82,31 @@ export default function AdminDashboard() {
       try {
         const user = JSON.parse(userData);
         setUser(user);
+
+        // Fetch homepage content (public endpoint) so dashboard can edit it
+        try {
+          const homeRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/homepage-content`);
+          const homeJson = await homeRes.json();
+          if (homeJson?.success) {
+            const content = homeJson.data || null;
+            setHomeContent(content);
+            if (content) {
+              setHomeForm({
+                heroBadgeText: content.heroBadgeText || '🚀 #1 Platform for eBay Sellers',
+                heroTitle: content.heroTitle || 'Master the Art of Online Selling',
+                heroSubtitle:
+                  content.heroSubtitle ||
+                  'Unlock your potential with expert-led courses, premium resources, and a community of successful entrepreneurs.',
+                heroPrimaryCtaLabel: content.heroPrimaryCtaLabel || 'Start Learning',
+                heroPrimaryCtaHref: content.heroPrimaryCtaHref || '/courses',
+                heroSecondaryCtaLabel: content.heroSecondaryCtaLabel || 'Browse Shop',
+                heroSecondaryCtaHref: content.heroSecondaryCtaHref || '/shop',
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch homepage content:', error);
+        }
 
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard/stats`,
@@ -94,6 +150,12 @@ export default function AdminDashboard() {
 
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    return () => {
+      if (heroPreview) URL.revokeObjectURL(heroPreview);
+    };
+  }, [heroPreview]);
 
   if (loading) {
     return (
@@ -158,22 +220,111 @@ export default function AdminDashboard() {
     },
   ];
 
+  const container = {
+    animate: {
+      transition: {
+        staggerChildren: 0.06,
+      },
+    },
+  };
+
+  const item = {
+    initial: { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+  };
+
+  const handleHeroFile = (file: File) => {
+    setHomeSaveState({ loading: false, error: '', success: '' });
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setHomeSaveState({ loading: false, error: 'Only JPG, PNG, and WebP images are supported', success: '' });
+      setHeroFile(null);
+      setHeroPreview(null);
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setHomeSaveState({ loading: false, error: 'File size must not exceed 5MB', success: '' });
+      setHeroFile(null);
+      setHeroPreview(null);
+      return;
+    }
+
+    if (heroPreview) URL.revokeObjectURL(heroPreview);
+    setHeroFile(file);
+    setHeroPreview(URL.createObjectURL(file));
+  };
+
+  const saveHomepageContent = async () => {
+    try {
+      setHomeSaveState({ loading: true, error: '', success: '' });
+
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        setHomeSaveState({ loading: false, error: 'Missing admin token. Please log in again.', success: '' });
+        router.push('/login');
+        return;
+      }
+
+      const form = new FormData();
+      form.append('heroBadgeText', homeForm.heroBadgeText);
+      form.append('heroTitle', homeForm.heroTitle);
+      form.append('heroSubtitle', homeForm.heroSubtitle);
+      form.append('heroPrimaryCtaLabel', homeForm.heroPrimaryCtaLabel);
+      form.append('heroPrimaryCtaHref', homeForm.heroPrimaryCtaHref);
+      form.append('heroSecondaryCtaLabel', homeForm.heroSecondaryCtaLabel);
+      form.append('heroSecondaryCtaHref', homeForm.heroSecondaryCtaHref);
+      if (heroFile) form.append('heroImage', heroFile);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/homepage-content`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: form,
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to update homepage content');
+      }
+
+      setHomeContent(data.data);
+      setHeroFile(null);
+      if (heroPreview) URL.revokeObjectURL(heroPreview);
+      setHeroPreview(null);
+
+      setHomeSaveState({ loading: false, error: '', success: 'Homepage content updated successfully.' });
+    } catch (error: any) {
+      setHomeSaveState({
+        loading: false,
+        error: error?.message || 'Failed to update homepage content',
+        success: '',
+      });
+    }
+  };
+
   return (
     <AdminLayout user={user}>
       <div className="p-6 lg:p-10 bg-gray-50 min-h-screen">
         {/* Header */}
-        <div className="mb-10">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-10">
           <h1 className="text-4xl font-extrabold text-gray-900">Dashboard Overview</h1>
           <p className="mt-3 text-lg text-gray-600">
             Welcome back, {user?.name || 'Admin'}. Here's a snapshot of your LMS platform performance.
           </p>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {statCards.map((stat, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={item}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
               className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-2xl transition-all duration-300"
             >
               <div className="flex items-start justify-between">
@@ -199,14 +350,14 @@ export default function AdminDashboard() {
                   <stat.icon className="w-8 h-8 text-indigo-600" />
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Revenue Chart */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Revenue Trend</h3>
             <ResponsiveContainer width="100%" height={360}>
               <LineChart data={chartData?.revenue}>
@@ -232,10 +383,10 @@ export default function AdminDashboard() {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
 
           {/* User Growth Chart */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6">User Growth</h3>
             <ResponsiveContainer width="100%" height={360}>
               <BarChart data={chartData?.users}>
@@ -253,13 +404,13 @@ export default function AdminDashboard() {
                 <Bar dataKey="users" fill="#10B981" radius={[12, 12, 0, 0]} barSize={50} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Bottom Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Product Categories */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Product Categories</h3>
             <ResponsiveContainer width="100%" height={320}>
               <PieChart>
@@ -297,28 +448,235 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Actions */}
-          <div className="lg:col-span-2">
+          <motion.div variants={item} className="lg:col-span-2">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {quickActions.map((action, index) => (
-                <Link
-                  key={index}
-                  href={action.href}
-                  className="group bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
-                >
-                  <div className="p-5 w-20 h-20 bg-indigo-50 rounded-2xl mb-6 group-hover:bg-indigo-100 transition-colors">
-                    <action.icon className="w-10 h-10 text-indigo-600" />
-                  </div>
-                  <h4 className="text-xl font-bold text-gray-900 mb-3">{action.title}</h4>
-                  <p className="text-gray-600 leading-relaxed">{action.description}</p>
-                </Link>
+                <motion.div key={index} whileHover={{ y: -6 }} transition={{ duration: 0.2 }}>
+                  <Link
+                    href={action.href}
+                    className="group block bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-2xl transition-all duration-300"
+                  >
+                    <div className="p-5 w-20 h-20 bg-indigo-50 rounded-2xl mb-6 group-hover:bg-indigo-100 transition-colors">
+                      <action.icon className="w-10 h-10 text-indigo-600" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-3">{action.title}</h4>
+                    <p className="text-gray-600 leading-relaxed">{action.description}</p>
+                  </Link>
+                </motion.div>
               ))}
             </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Homepage Content Editor */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="mt-12 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+        >
+          <div className="px-8 py-6 border-b border-gray-100">
+            <h3 className="text-xl font-bold text-gray-900">Homepage Content</h3>
+            <p className="text-gray-600 mt-1">Update the landing page hero text, buttons, and image.</p>
           </div>
-        </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+            <div className="lg:col-span-2 p-8 bg-gray-50">
+              <div className="text-sm font-semibold text-gray-700 mb-3">Preview</div>
+              <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+                <div className="relative h-56">
+                  {heroPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={heroPreview} alt="Hero preview" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : homeContent?.heroImageUrl ? (
+                    <AppImage
+                      path={homeContent.heroImageUrl}
+                      alt="Current hero image"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                      <span className="text-sm">No hero image uploaded</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-b from-gray-900/20 via-gray-900/35 to-gray-900/55" />
+                </div>
+                <div className="p-6">
+                  <div className="inline-flex px-3 py-1 rounded-full bg-gray-900/5 border border-gray-200 text-xs font-semibold text-gray-700">
+                    {homeForm.heroBadgeText}
+                  </div>
+                  <div className="mt-4 text-lg font-extrabold text-gray-900 leading-snug whitespace-pre-line">
+                    {homeForm.heroTitle}
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600 leading-relaxed">
+                    {homeForm.heroSubtitle}
+                  </div>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <div className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold">
+                      {homeForm.heroPrimaryCtaLabel}
+                    </div>
+                    <div className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm font-bold">
+                      {homeForm.heroSecondaryCtaLabel}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-3 p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hero Image</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleHeroFile(file);
+                      }}
+                      className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {heroPreview || heroFile ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHeroFile(null);
+                          if (heroPreview) URL.revokeObjectURL(heroPreview);
+                          setHeroPreview(null);
+                          setHomeSaveState({ loading: false, error: '', success: '' });
+                        }}
+                        className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">JPG/PNG/WebP up to 5MB.</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Badge Text</label>
+                  <input
+                    value={homeForm.heroBadgeText}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroBadgeText: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                    placeholder="e.g. 🚀 #1 Platform for eBay Sellers"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hero Title</label>
+                  <textarea
+                    value={homeForm.heroTitle}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroTitle: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300 min-h-[84px]"
+                    placeholder="Use line breaks if needed"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hero Subtitle</label>
+                  <textarea
+                    value={homeForm.heroSubtitle}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroSubtitle: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300 min-h-[110px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Primary Button Label</label>
+                  <input
+                    value={homeForm.heroPrimaryCtaLabel}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroPrimaryCtaLabel: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Primary Button Link</label>
+                  <input
+                    value={homeForm.heroPrimaryCtaHref}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroPrimaryCtaHref: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                    placeholder="/courses"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Secondary Button Label</label>
+                  <input
+                    value={homeForm.heroSecondaryCtaLabel}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroSecondaryCtaLabel: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Secondary Button Link</label>
+                  <input
+                    value={homeForm.heroSecondaryCtaHref}
+                    onChange={(e) => setHomeForm((p) => ({ ...p, heroSecondaryCtaHref: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-300"
+                    placeholder="/shop"
+                  />
+                </div>
+              </div>
+
+              {homeSaveState.error ? (
+                <div className="mt-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                  {homeSaveState.error}
+                </div>
+              ) : null}
+
+              {homeSaveState.success ? (
+                <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                  {homeSaveState.success}
+                </div>
+              ) : null}
+
+              <div className="mt-8 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHomeSaveState({ loading: false, error: '', success: '' });
+                    if (homeContent) {
+                      setHomeForm({
+                        heroBadgeText: homeContent.heroBadgeText || '🚀 #1 Platform for eBay Sellers',
+                        heroTitle: homeContent.heroTitle || 'Master the Art of Online Selling',
+                        heroSubtitle:
+                          homeContent.heroSubtitle ||
+                          'Unlock your potential with expert-led courses, premium resources, and a community of successful entrepreneurs.',
+                        heroPrimaryCtaLabel: homeContent.heroPrimaryCtaLabel || 'Start Learning',
+                        heroPrimaryCtaHref: homeContent.heroPrimaryCtaHref || '/courses',
+                        heroSecondaryCtaLabel: homeContent.heroSecondaryCtaLabel || 'Browse Shop',
+                        heroSecondaryCtaHref: homeContent.heroSecondaryCtaHref || '/shop',
+                      });
+                    }
+                    setHeroFile(null);
+                    if (heroPreview) URL.revokeObjectURL(heroPreview);
+                    setHeroPreview(null);
+                  }}
+                  className="px-5 py-3 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  disabled={homeSaveState.loading}
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={saveHomepageContent}
+                  disabled={homeSaveState.loading}
+                  className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {homeSaveState.loading ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </AdminLayout>
   );

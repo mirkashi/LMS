@@ -68,6 +68,7 @@ app.use('/api/media', require('./routes/mediaRoutes'));
 app.use('/api/progress', require('./routes/progressRoutes'));
 app.use('/api/video-progress', require('./routes/videoProgressRoutes'));
 app.use('/api/page-backgrounds', require('./routes/pageBackgroundRoutes'));
+app.use('/api/homepage-content', require('./routes/homePageContentRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
