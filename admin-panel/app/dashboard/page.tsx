@@ -10,7 +10,6 @@ import {
   UsersIcon,
   BookOpenIcon,
   CurrencyDollarIcon,
-  ShoppingBagIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
@@ -221,6 +220,7 @@ export default function AdminDashboard() {
   ];
 
   const container = {
+    initial: { opacity: 1 },
     animate: {
       transition: {
         staggerChildren: 0.06,
@@ -308,186 +308,255 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout user={user}>
-      <div className="p-6 lg:p-10 bg-gray-50 min-h-screen">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900">Dashboard Overview</h1>
-          <p className="mt-3 text-lg text-gray-600">
-            Welcome back, {user?.name || 'Admin'}. Here's a snapshot of your LMS platform performance.
-          </p>
-        </motion.div>
+      <div className="relative min-h-screen bg-gradient-to-b from-gray-50 via-gray-50 to-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
+          {/* Hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 via-blue-600/10 to-cyan-500/10" />
+            <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
+            <div className="absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
 
-        {/* Stats Cards */}
-        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {statCards.map((stat, index) => (
-            <motion.div
-              key={index}
-              variants={item}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-start justify-between">
+            <div className="relative p-7 sm:p-10">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{stat.title}</p>
-                  <p className="mt-4 text-4xl font-extrabold text-gray-900">{stat.value}</p>
-                  <div className="flex items-center mt-5">
-                    {stat.changeType === 'increase' ? (
-                      <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-500 mr-2" />
-                    ) : (
-                      <ArrowTrendingDownIcon className="w-5 h-5 text-red-500 mr-2" />
-                    )}
-                    <span
-                      className={`text-sm font-semibold ${
-                        stat.changeType === 'increase' ? 'text-emerald-600' : 'text-red-600'
-                      }`}
-                    >
-                      {stat.change} vs last month
-                    </span>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Admin Dashboard • {new Date().toLocaleDateString()}
+                  </div>
+                  <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+                    Welcome back, {user?.name || 'Admin'}
+                  </h1>
+                  <p className="mt-3 text-base sm:text-lg text-gray-600 max-w-2xl">
+                    A high-level overview of users, courses, revenue, and enrollments — plus quick edits to your homepage hero.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
+                  {quickActions.map((action, index) => (
+                    <motion.div key={index} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.18 }}>
+                      <Link
+                        href={action.href}
+                        className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 hover:bg-white shadow-sm"
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                          <action.icon className="h-5 w-5 text-indigo-600" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-gray-900 truncate">{action.title}</span>
+                          <span className="block text-xs text-gray-500 truncate">{action.description}</span>
+                        </span>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            variants={container}
+            initial="initial"
+            animate="animate"
+            className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            {statCards.map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={item}
+                whileHover={{ y: -3 }}
+                transition={{ duration: 0.18 }}
+                className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500/70 via-blue-500/70 to-cyan-500/70" />
+                <div className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.title}</p>
+                      <p className="mt-3 text-3xl font-extrabold text-gray-900 tracking-tight">{stat.value}</p>
+                      <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-50 border border-gray-200 px-3 py-1">
+                        {stat.changeType === 'increase' ? (
+                          <ArrowTrendingUpIcon className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <ArrowTrendingDownIcon className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className="text-xs font-semibold text-gray-700">{stat.change}</span>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-indigo-50 p-3">
+                      <stat.icon className="h-7 w-7 text-indigo-600" />
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-indigo-50 rounded-2xl">
-                  <stat.icon className="w-8 h-8 text-indigo-600" />
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Main grid */}
+          <motion.div
+            variants={container}
+            initial="initial"
+            animate="animate"
+            className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6"
+          >
+            <motion.div variants={item} className="lg:col-span-8 space-y-6">
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-extrabold text-gray-900">Revenue Trend</h3>
+                    <p className="text-sm text-gray-600">Monthly revenue performance snapshot.</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={chartData?.revenue}>
+                    <CartesianGrid strokeDasharray="5 5" stroke="#e5e7eb" />
+                    <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '14px',
+                        boxShadow: '0 18px 40px rgba(0,0,0,0.10)',
+                      }}
+                      formatter={(value: any) => `PKR ${Number(value).toLocaleString()}`}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#6366F1"
+                      strokeWidth={4}
+                      dot={{ fill: '#6366F1', r: 5 }}
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-extrabold text-gray-900">User Growth</h3>
+                    <p className="text-sm text-gray-600">New users over recent months.</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={chartData?.users}>
+                    <CartesianGrid strokeDasharray="5 5" stroke="#e5e7eb" />
+                    <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '14px',
+                        boxShadow: '0 18px 40px rgba(0,0,0,0.10)',
+                      }}
+                    />
+                    <Bar dataKey="users" fill="#10B981" radius={[12, 12, 0, 0]} barSize={42} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            <motion.div variants={item} className="lg:col-span-4 space-y-6">
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
+                <h3 className="text-lg font-extrabold text-gray-900">Breakdown</h3>
+                <p className="text-sm text-gray-600">Courses, enrollments, orders, pending.</p>
+
+                <div className="mt-6">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={chartData?.categories}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={64}
+                        outerRadius={96}
+                        paddingAngle={6}
+                        dataKey="value"
+                      >
+                        {chartData?.categories.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '14px',
+                        }}
+                      />
+                      <Legend verticalAlign="bottom" height={44} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {chartData?.categories.map((category: any) => (
+                    <div key={category.name} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                      <div className="flex items-center min-w-0">
+                        <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: category.color }} />
+                        <span className="text-sm font-semibold text-gray-800 truncate">{category.name}</span>
+                      </div>
+                      <span className="text-sm font-extrabold text-gray-900">{category.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
+                <h3 className="text-lg font-extrabold text-gray-900">Shortcuts</h3>
+                <p className="text-sm text-gray-600">Jump into key admin tools.</p>
+
+                <div className="mt-5 space-y-3">
+                  {quickActions.map((action, index) => (
+                    <motion.div key={index} whileHover={{ y: -2 }} whileTap={{ scale: 0.99 }} transition={{ duration: 0.16 }}>
+                      <Link
+                        href={action.href}
+                        className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50"
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
+                          <action.icon className="h-5 w-5 text-indigo-600" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-gray-900 truncate">{action.title}</span>
+                          <span className="block text-xs text-gray-500 truncate">{action.description}</span>
+                        </span>
+                      </Link>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Charts Section */}
-        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Revenue Chart */}
-          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Revenue Trend</h3>
-            <ResponsiveContainer width="100%" height={360}>
-              <LineChart data={chartData?.revenue}>
-                <CartesianGrid strokeDasharray="5 5" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#6b7280" fontSize={14} />
-                <YAxis stroke="#6b7280" fontSize={14} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                  }}
-                  formatter={(value: any) => `PKR ${Number(value).toLocaleString()}`}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#6366F1"
-                  strokeWidth={4}
-                  dot={{ fill: '#6366F1', r: 6 }}
-                  activeDot={{ r: 9 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </motion.div>
-
-          {/* User Growth Chart */}
-          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">User Growth</h3>
-            <ResponsiveContainer width="100%" height={360}>
-              <BarChart data={chartData?.users}>
-                <CartesianGrid strokeDasharray="5 5" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#6b7280" fontSize={14} />
-                <YAxis stroke="#6b7280" fontSize={14} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-                  }}
-                />
-                <Bar dataKey="users" fill="#10B981" radius={[12, 12, 0, 0]} barSize={50} />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
-        </motion.div>
-
-        {/* Bottom Section */}
-        <motion.div variants={container} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Product Categories */}
-          <motion.div variants={item} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Product Categories</h3>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={chartData?.categories}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {chartData?.categories.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                  }}
-                />
-                <Legend verticalAlign="bottom" height={40} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-6 space-y-4">
-              {chartData?.categories.map((category: any) => (
-                <div key={category.name} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: category.color }} />
-                    <span className="font-semibold text-gray-700">{category.name}</span>
-                  </div>
-                  <span className="text-lg font-bold text-gray-900">{category.value}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div variants={item} className="lg:col-span-2">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {quickActions.map((action, index) => (
-                <motion.div key={index} whileHover={{ y: -6 }} transition={{ duration: 0.2 }}>
-                  <Link
-                    href={action.href}
-                    className="group block bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-2xl transition-all duration-300"
-                  >
-                    <div className="p-5 w-20 h-20 bg-indigo-50 rounded-2xl mb-6 group-hover:bg-indigo-100 transition-colors">
-                      <action.icon className="w-10 h-10 text-indigo-600" />
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-3">{action.title}</h4>
-                    <p className="text-gray-600 leading-relaxed">{action.description}</p>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
 
         {/* Homepage Content Editor */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.05 }}
-          className="mt-12 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+          className="mt-10 bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden"
         >
-          <div className="px-8 py-6 border-b border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900">Homepage Content</h3>
-            <p className="text-gray-600 mt-1">Update the landing page hero text, buttons, and image.</p>
+          <div className="px-7 sm:px-10 py-7 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Homepage Content</h3>
+                <p className="text-gray-600 mt-1">Edit hero text, buttons, and background image for the landing page.</p>
+              </div>
+              <div className="text-xs font-semibold text-gray-500">Changes reflect on the homepage immediately.</div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-            <div className="lg:col-span-2 p-8 bg-gray-50">
+            <div className="lg:col-span-2 p-7 sm:p-10 bg-gray-50">
               <div className="text-sm font-semibold text-gray-700 mb-3">Preview</div>
-              <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+              <div className="relative rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-sm">
                 <div className="relative h-56">
                   {heroPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -507,7 +576,7 @@ export default function AdminDashboard() {
                   <div className="absolute inset-0 bg-gradient-to-b from-gray-900/20 via-gray-900/35 to-gray-900/55" />
                 </div>
                 <div className="p-6">
-                  <div className="inline-flex px-3 py-1 rounded-full bg-gray-900/5 border border-gray-200 text-xs font-semibold text-gray-700">
+                  <div className="inline-flex px-3 py-1 rounded-full bg-white border border-gray-200 text-xs font-semibold text-gray-700 shadow-sm">
                     {homeForm.heroBadgeText}
                   </div>
                   <div className="mt-4 text-lg font-extrabold text-gray-900 leading-snug whitespace-pre-line">
@@ -528,7 +597,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="lg:col-span-3 p-8">
+            <div className="lg:col-span-3 p-7 sm:p-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Hero Image</label>
@@ -677,6 +746,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </motion.div>
+        </div>
       </div>
     </AdminLayout>
   );
