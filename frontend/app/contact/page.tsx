@@ -169,7 +169,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1">Our Office</h3>
-                  <p className="text-gray-600">123 Business Avenue, Suite 100<br />New York, NY 10001</p>
+                  <p className="text-gray-600">Islamabad,<br />Pakistan</p>
                 </div>
               </div>
               
@@ -179,7 +179,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
-                  <p className="text-gray-600">support@9tangle.com<br />partnerships@9tangle.com</p>
+                  <p className="text-gray-600">9teangle@gmail.com<br />shahnamkhann@gmail.com</p>
                 </div>
               </div>
 
@@ -189,7 +189,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1">Call Us</h3>
-                  <p className="text-gray-600">+1 (555) 123-4567<br />Mon-Fri, 9am-6pm EST</p>
+                  <p className="text-gray-600">+92 348 288 1579<br />Mon-Fri, 9am-6pm PKT</p>
                 </div>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function Contact() {
               </div>
               {/* In a real app, you'd embed Google Maps iframe here */}
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d193595.15830869428!2d-74.119763973046!3d40.69766374874431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c24fa5d33f083b%3A0xc80b8f06e177fe62!2sNew%20York%2C%20NY%2C%20USA!5e0!3m2!1sen!2s!4v1645564756836!5m2!1sen!2s" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13286.803146553482!2d73.15075739751295!3d33.63899942304169!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38dfebc5f13b8b21%3A0x2b4d0f15e204b6b1!2sTaramri%2C%20Pakistan!5e0!3m2!1sen!2s!4v1767853442507!5m2!1sen!2s" 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0, filter: 'grayscale(100%)' }} 

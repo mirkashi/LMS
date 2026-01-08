@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const { authMiddleware } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 
 // Rate limiter for registration attempts
@@ -62,5 +63,14 @@ router.post('/login', authController.login);
 router.post('/admin-login', authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
+
+// Token validation endpoint for debugging
+router.get('/validate-token', authMiddleware, (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Token is valid',
+    user: req.user,
+  });
+});
 
 module.exports = router;

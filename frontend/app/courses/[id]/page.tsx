@@ -17,6 +17,7 @@ export default function CourseDetail() {
   const [enrolling, setEnrolling] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activeVideoStorageType, setActiveVideoStorageType] = useState<string | null>(null);
   const [activeVideoLink, setActiveVideoLink] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [videoProgress, setVideoProgress] = useState<any>({});
@@ -37,6 +38,22 @@ export default function CourseDetail() {
     }
     // Return original URL for other platforms
     return url;
+  };
+
+  // Normalize media URLs so Google Drive/external links stay absolute and local uploads use backend origin
+  const getMediaUrl = (url?: string | null, storageType?: string) => {
+    if (!url) return null;
+
+    // Prefer backend stream route for Drive files to improve playback reliability
+    if (storageType === 'google-drive') {
+      const match = url.match(/id=([^&]+)/) || url.match(/file\/d\/([^/]+)/);
+      const fileId = match?.[1];
+      if (fileId) {
+        return `${process.env.NEXT_PUBLIC_API_URL}/media/drive/${fileId}/stream`;
+      }
+    }
+
+    return getAssetUrl(url) || url;
   };
 
   useEffect(() => {
@@ -179,10 +196,10 @@ export default function CourseDetail() {
                     {course.introVideoUrl && (
                       <div className="mb-4">
                         <video
-                          src={`${process.env.NEXT_PUBLIC_API_URL}${course.introVideoUrl}`}
+                          src={getMediaUrl(course.introVideoUrl, course.introVideoStorageType) || undefined}
                           controls
                           className="w-full rounded-lg bg-black"
-                          poster={course.thumbnail ? `${process.env.NEXT_PUBLIC_API_URL}${course.thumbnail}` : undefined}
+                          poster={getMediaUrl(course.thumbnail) || undefined}
                         >
                           Your browser does not support the video tag.
                         </video>
@@ -222,7 +239,7 @@ export default function CourseDetail() {
                 {activeVideoUrl && !activeVideoLink && (
                   <div className="mb-6">
                     <video
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${activeVideoUrl}`}
+                      src={getMediaUrl(activeVideoUrl, activeVideoStorageType || undefined) || undefined}
                       controls
                       className="w-full h-96 bg-black rounded-lg"
                       onTimeUpdate={(e) => {
@@ -304,9 +321,11 @@ export default function CourseDetail() {
                                     if (lesson.videoLink) {
                                       setActiveVideoLink(lesson.videoLink);
                                       setActiveVideoUrl(null);
+                                      setActiveVideoStorageType(null);
                                     } else if (lesson.videoUrl) {
                                       setActiveVideoUrl(lesson.videoUrl);
                                       setActiveVideoLink(null);
+                                      setActiveVideoStorageType(lesson.videoStorageType || null);
                                     }
                                   }
                                 }}

@@ -34,6 +34,7 @@ const authMiddleware = (req, res, next) => {
     const decoded = verifyToken(token);
 
     if (!decoded) {
+      console.error('❌ Token verification failed for token:', token.substring(0, 20) + '...');
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired token. Please log in again.',
