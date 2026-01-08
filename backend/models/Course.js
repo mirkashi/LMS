@@ -91,6 +91,15 @@ const courseSchema = new mongoose.Schema(
             pdfUrl: String,
             content: String,
             duration: Number, // in minutes
+            releaseDate: {
+              type: Date,
+              description: 'Date when this lesson becomes available to enrolled students',
+            },
+            isLocked: {
+              type: Boolean,
+              default: false,
+              description: 'If true, lesson is locked until releaseDate',
+            },
             resources: [
               new mongoose.Schema({
                 url: String,

@@ -95,7 +95,30 @@ exports.getCourseById = async (req, res) => {
 
     // If user is enrolled (approved), provide full course content
     if (isEnrolled) {
-      courseData.modules = course.modules;
+      // Filter lessons based on release date
+      const currentDate = new Date();
+      courseData.modules = course.modules.map((module) => ({
+        ...module.toObject(),
+        lessons: module.lessons.map((lesson) => {
+          const lessonObj = lesson.toObject ? lesson.toObject() : lesson;
+          
+          // Check if lesson is locked by release date
+          if (lessonObj.releaseDate && new Date(lessonObj.releaseDate) > currentDate) {
+            return {
+              ...lessonObj,
+              isLocked: true,
+              videoUrl: null,
+              videoLink: null,
+              pdfUrl: null,
+              content: null,
+              resources: [],
+              lockedMessage: `This lesson will be available on ${new Date(lessonObj.releaseDate).toLocaleDateString()}`,
+            };
+          }
+          
+          return lessonObj;
+        }),
+      }));
     } else {
       // Provide only preview/outline of modules without actual content
       courseData.modules = course.modules.map((module) => ({

@@ -190,94 +190,42 @@ export default function CourseDetail() {
                 {/* Intro Video Section - Shown to All Users */}
                 {(course.introVideoLink || course.introVideoUrl) && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Course Introduction Video</h3>
-                    
-                    {/* Show uploaded video if available */}
-                    {course.introVideoUrl && (
-                      <div className="mb-4">
-                        <video
-                          src={getMediaUrl(course.introVideoUrl, course.introVideoStorageType) || undefined}
-                          controls
-                          className="w-full rounded-lg bg-black"
-                          poster={getMediaUrl(course.thumbnail) || undefined}
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                      </div>
-                    )}
-                    
-                    {/* Show video link (YouTube, Vimeo, etc.) */}
-                    {course.introVideoLink && !course.introVideoUrl && (
-                      <>
-                        <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                          <iframe
-                            src={getEmbedUrl(course.introVideoLink)}
-                            className="w-full h-full"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            title="Course Introduction Video"
-                          ></iframe>
-                        </div>
-                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                          <p className="text-sm text-gray-600">Video Link:</p>
-                          <a 
-                            href={course.introVideoLink} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline break-all text-sm"
-                          >
-                            {course.introVideoLink}
-                          </a>
-                        </div>
-                      </>
-                    )}
+                    <h3 className="text-lg font-semibold mb-4">📺 Course Introduction Video</h3>
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+                      <VideoPlayer
+                        courseId={courseId}
+                        videoLink={course.introVideoUrl || course.introVideoLink || ''}
+                        autoSaveProgress={course.isEnrolled}
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* Video Player */}
-                {activeVideoUrl && !activeVideoLink && (
-                  <div className="mb-6">
-                    <video
-                      src={getMediaUrl(activeVideoUrl, activeVideoStorageType || undefined) || undefined}
-                      controls
-                      className="w-full h-96 bg-black rounded-lg"
-                      onTimeUpdate={(e) => {
-                        const video = e.target as HTMLVideoElement;
-                        // Track progress every 5 seconds
-                        if (Math.floor(video.currentTime) % 5 === 0) {
-                          setVideoProgress((prev: any) => ({
-                            ...prev,
-                            currentTime: video.currentTime,
-                            duration: video.duration,
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-                {/* External Video Link (YouTube, Vimeo, etc.) */}
-                {activeVideoLink && (
-                  <div className="mb-6">
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                      <iframe
-                        src={getEmbedUrl(activeVideoLink)}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                      <p className="text-sm text-gray-600">Video Link:</p>
-                      <a 
-                        href={activeVideoLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline break-all text-sm"
+                {/* Active Video Player - For Module Videos */}
+                {(activeVideoUrl || activeVideoLink) && (
+                  <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-300 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-semibold text-blue-900 flex items-center">
+                        <span className="mr-2">▶️</span>
+                        Now Playing
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setActiveVideoUrl(null);
+                          setActiveVideoLink(null);
+                          setActiveVideoStorageType(null);
+                        }}
+                        className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded transition"
                       >
-                        {activeVideoLink}
-                      </a>
+                        Close Video
+                      </button>
+                    </div>
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+                      <VideoPlayer
+                        courseId={courseId}
+                        videoLink={activeVideoLink || activeVideoUrl || ''}
+                        autoSaveProgress={course.isEnrolled}
+                      />
                     </div>
                   </div>
                 )}
@@ -315,8 +263,14 @@ export default function CourseDetail() {
                             {module.lessons?.map((lesson: any, lessonIdx: number) => (
                               <div
                                 key={lessonIdx}
-                                className="flex items-center justify-between p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
+                                className={`flex items-center justify-between p-3 rounded ${
+                                  lesson.isLocked 
+                                    ? 'bg-gray-100 cursor-not-allowed opacity-60' 
+                                    : 'bg-gray-50 cursor-pointer hover:bg-gray-100'
+                                }`}
                                 onClick={() => {
+                                  if (lesson.isLocked) return; // Don't allow clicking locked lessons
+                                  
                                   if (lesson.type === 'video') {
                                     if (lesson.videoLink) {
                                       setActiveVideoLink(lesson.videoLink);
@@ -331,37 +285,32 @@ export default function CourseDetail() {
                                 }}
                               >
                                 <div className="flex items-center space-x-3">
-                                  <span className="text-primary">
-                                    {lesson.type === 'video' ? '🎥' : lesson.type === 'pdf' ? '📄' : '📝'}
+                                  <span className="text-primary text-2xl">
+                                    {lesson.isLocked ? '🔒' : lesson.type === 'video' ? '🎥' : lesson.type === 'pdf' ? '📄' : '📝'}
                                   </span>
                                   <div>
                                     <p className="font-medium">{lesson.title}</p>
-                                    <p className="text-sm text-gray-600">
-                                      {lesson.duration} minutes
-                                    </p>
-                                    
-                                    {/* Show video link if available */}
-                                    {lesson.videoLink && (
-                                      <a
-                                        href={lesson.videoLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline text-sm block mt-1"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        🔗 External Video Link
-                                      </a>
+                                    {lesson.isLocked ? (
+                                      <p className="text-sm text-orange-600 mt-1">
+                                        🕒 {lesson.lockedMessage || 'Available soon'}
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm text-gray-600">
+                                          {lesson.duration} minutes
+                                        </p>
+                                        
+                                        {/* Show video availability status */}
+                                        {(lesson.videoLink || lesson.videoUrl) && (
+                                          <span className="inline-flex items-center px-2 py-1 mt-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+                                            ✓ Video Ready - Click to Play
+                                          </span>
+                                        )}
+                                      </>
                                     )}
                                     
-                                    {/* Show video URL if available */}
-                                    {lesson.videoUrl && (
-                                      <span className="text-green-600 text-sm block mt-1">
-                                        ✓ Video Available
-                                      </span>
-                                    )}
-                                    
-                                    {/* Show download links for resources */}
-                                    {lesson.resources && lesson.resources.length > 0 && (
+                                    {/* Show download links for resources - only if not locked */}
+                                    {!lesson.isLocked && lesson.resources && lesson.resources.length > 0 && (
                                       <div className="mt-2 space-y-1">
                                         {lesson.resources.map((resource: any, resIdx: number) => (
                                           <a
@@ -377,8 +326,8 @@ export default function CourseDetail() {
                                         ))}
                                       </div>
                                     )}
-                                    {/* For legacy pdfUrl */}
-                                    {lesson.pdfUrl && (
+                                    {/* For legacy pdfUrl - only if not locked */}
+                                    {!lesson.isLocked && lesson.pdfUrl && (
                                       <a
                                         href={getAssetUrl(lesson.pdfUrl) || lesson.pdfUrl}
                                         target="_blank"
@@ -391,7 +340,9 @@ export default function CourseDetail() {
                                     )}
                                   </div>
                                 </div>
-                                <span className="text-green-600 font-semibold">✓</span>
+                                <span className={lesson.isLocked ? "text-gray-400" : "text-green-600 font-semibold"}>
+                                  {lesson.isLocked ? '🔒' : '✓'}
+                                </span>
                               </div>
                             ))}
                           </div>

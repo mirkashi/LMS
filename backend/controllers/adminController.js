@@ -920,6 +920,60 @@ exports.addLesson = async (req, res) => {
   }
 };
 
+// Update Lesson Release Date
+exports.updateLessonReleaseDate = async (req, res) => {
+  try {
+    const { courseId, moduleIndex, lessonIndex } = req.params;
+    const { releaseDate, isLocked } = req.body;
+    const userId = req.user.userId;
+
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    if (course.instructor.toString() !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+
+    if (!course.modules[moduleIndex] || !course.modules[moduleIndex].lessons[lessonIndex]) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lesson not found',
+      });
+    }
+
+    // Update release date and lock status
+    if (releaseDate) {
+      course.modules[moduleIndex].lessons[lessonIndex].releaseDate = new Date(releaseDate);
+    }
+    if (typeof isLocked !== 'undefined') {
+      course.modules[moduleIndex].lessons[lessonIndex].isLocked = isLocked;
+    }
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Lesson release date updated successfully',
+      data: course.modules[moduleIndex].lessons[lessonIndex],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update lesson release date',
+      error: error.message,
+    });
+  }
+};
+
 // Get All Orders (Admin)
 exports.getAllOrders = async (req, res) => {
   try {

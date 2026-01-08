@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { PlayIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { getAssetUrl } from '@/lib/assets';
 
 interface VideoPlayerProps {
   courseId: string;
@@ -28,6 +29,29 @@ export default function VideoPlayer({
   const [isCompleted, setIsCompleted] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
+  // Normalize video URL for local/Drive videos
+  const normalizeVideoUrl = (url: string): string => {
+    if (!url) return url;
+    
+    // If it's a Google Drive URL, convert to stream URL
+    if (url.includes('drive.google.com') || url.includes('googleusercontent.com')) {
+      const match = url.match(/id=([^&]+)/) || url.match(/file\/d\/([^/]+)/);
+      const fileId = match?.[1];
+      if (fileId) {
+        return `${process.env.NEXT_PUBLIC_API_URL}/media/drive/${fileId}/stream`;
+      }
+    }
+    
+    // For local uploads, use getAssetUrl
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return getAssetUrl(url) || url;
+    }
+    
+    return url;
+  };
+
+  const normalizedVideoLink = normalizeVideoUrl(videoLink);
+
   // Helper function to extract video ID and convert to embed URL
   const getEmbedUrl = (url: string) => {
     try {
@@ -49,6 +73,11 @@ export default function VideoPlayer({
           url: `https://player.vimeo.com/video/${videoId}`,
         };
       }
+      // Check if it's a direct video file (mp4, webm, ogg) or Google Drive stream
+      if (url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || 
+          url.includes('/media/drive/') || url.includes('googleusercontent.com')) {
+        return { type: 'direct', url };
+      }
       // Default
       return { type: 'other', url };
     } catch (error) {
@@ -57,7 +86,7 @@ export default function VideoPlayer({
     }
   };
 
-  const embed = getEmbedUrl(videoLink);
+  const embed = getEmbedUrl(normalizedVideoLink);
 
   // Fetch existing progress on load
   useEffect(() => {
@@ -174,15 +203,43 @@ export default function VideoPlayer({
     <div className="space-y-4">
       {/* Video Container */}
       <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-        <iframe
-          ref={iframeRef}
-          src={embed.url}
-          className="w-full h-full"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          title="Course Video"
-        />
+        {embed.type === 'direct' ? (
+          <video
+            src={embed.url}
+            controls
+            className="w-full h-full"
+            onTimeUpdate={(e) => {
+              const video = e.target as HTMLVideoElement;
+              if (video.duration > 0) {
+                setDuration(video.duration);
+                setCurrentTime(video.currentTime);
+                const newPercentage = Math.round((video.currentTime / video.duration) * 100);
+                setPercentageWatched(newPercentage);
+                if (newPercentage >= 90 && !isCompleted) {
+                  setIsCompleted(true);
+                }
+              }
+            }}
+            onLoadedMetadata={(e) => {
+              const video = e.target as HTMLVideoElement;
+              if (video.duration > 0) {
+                setDuration(video.duration);
+              }
+            }}
+          >
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          <iframe
+            ref={iframeRef}
+            src={embed.url}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            title="Course Video"
+          />
+        )}
       </div>
 
       {/* Progress Bar */}

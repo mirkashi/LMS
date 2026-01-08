@@ -77,7 +77,7 @@ export default function Courses() {
         <section 
           className="relative text-white py-12 px-4 bg-gradient-primary overflow-hidden"
           style={{
-            backgroundImage: headerBackgroundImage ? `url('${headerBackgroundImage}')` : 'none',
+            backgroundImage: headerBackgroundImage ? `url('${headerBackgroundImage}')` : `url('https://images.unsplash.com/photo-1536528679846-3c5a38e3026b?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',

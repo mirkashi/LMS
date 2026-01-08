@@ -108,6 +108,14 @@ router.post(
   adminController.addLesson
 );
 
+// Update lesson release date
+router.patch(
+  '/courses/:courseId/modules/:moduleIndex/lessons/:lessonIndex/release-date',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateLessonReleaseDate
+);
+
 // Order management
 router.get(
   '/orders',
