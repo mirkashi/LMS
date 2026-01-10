@@ -187,10 +187,14 @@ export default function CourseDetail() {
                   />
                 )}
 
-                {/* Intro Video Section - Shown to All Users */}
-                {(course.introVideoLink || course.introVideoUrl) && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">📺 Course Introduction Video</h3>
+                {/* Intro Video Section - Shown to Enrolled Users Only */}
+                {course.isEnrolled && (course.introVideoLink || course.introVideoUrl) && (
+                  <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-2 border-green-300 shadow-lg">
+                    <h3 className="text-lg font-semibold mb-4 text-green-900 flex items-center">
+                      <span className="mr-2">📺</span>
+                      Course Introduction Video
+                      <span className="ml-3 text-xs px-2 py-1 bg-green-200 text-green-800 rounded-full">✓ Enrolled Access</span>
+                    </h3>
                     <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
                       <VideoPlayer
                         courseId={courseId}

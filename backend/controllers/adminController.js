@@ -5,6 +5,7 @@ const Product = require('../models/Product');
 const Enrollment = require('../models/Enrollment');
 const CourseAuditLog = require('../models/CourseAuditLog');
 const PaymentStatusTracking = require('../models/PaymentStatusTracking');
+const Category = require('../models/Category');
 const courseAuditController = require('./courseAuditController');
 const paymentTrackingController = require('./paymentTrackingController');
 
@@ -1613,4 +1614,215 @@ exports.rejectEnrollment = async (req, res) => {
   }
 };
 
+// ==================== CATEGORY MANAGEMENT ====================
+
+// Get all categories
+exports.getAllCategories = async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ order: 1, name: 1 });
+    
+    res.status(200).json({
+      success: true,
+      data: categories,
+    });
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch categories',
+      error: error.message,
+    });
+  }
+};
+
+// Get single category
+exports.getCategory = async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found',
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: category,
+    });
+  } catch (error) {
+    console.error('Failed to fetch category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch category',
+      error: error.message,
+    });
+  }
+};
+
+// Create category
+exports.createCategory = async (req, res) => {
+  try {
+    const { name, description, icon, color } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category name is required',
+      });
+    }
+    
+    // Check if category with same name exists
+    const existingCategory = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    });
+    
+    if (existingCategory) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category with this name already exists',
+      });
+    }
+    
+    const category = await Category.create({
+      name,
+      description: description || '',
+      icon: icon || '📚',
+      color: color || '#3B82F6',
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Category created successfully',
+      data: category,
+    });
+  } catch (error) {
+    console.error('Failed to create category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create category',
+      error: error.message,
+    });
+  }
+};
+
+// Update category
+exports.updateCategory = async (req, res) => {
+  try {
+    const { name, description, icon, color, isActive, order } = req.body;
+    
+    const category = await Category.findById(req.params.id);
+    
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found',
+      });
+    }
+    
+    // Check if updating name to one that already exists
+    if (name && name !== category.name) {
+      const existingCategory = await Category.findOne({ 
+        name: { $regex: new RegExp(`^${name}$`, 'i') },
+        _id: { $ne: req.params.id }
+      });
+      
+      if (existingCategory) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category with this name already exists',
+        });
+      }
+      
+      category.name = name;
+    }
+    
+    if (description !== undefined) category.description = description;
+    if (icon) category.icon = icon;
+    if (color) category.color = color;
+    if (isActive !== undefined) category.isActive = isActive;
+    if (order !== undefined) category.order = order;
+    
+    await category.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Category updated successfully',
+      data: category,
+    });
+  } catch (error) {
+    console.error('Failed to update category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update category',
+      error: error.message,
+    });
+  }
+};
+
+// Delete category
+exports.deleteCategory = async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found',
+      });
+    }
+    
+    // Check if category is used by any courses
+    const courseCount = await Course.countDocuments({ category: category.name });
+    
+    if (courseCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category. It is used by ${courseCount} course(s). Please reassign or delete those courses first.`,
+      });
+    }
+    
+    await Category.findByIdAndDelete(req.params.id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Category deleted successfully',
+    });
+  } catch (error) {
+    console.error('Failed to delete category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete category',
+      error: error.message,
+    });
+  }
+};
+
+// Update course counts for all categories
+exports.updateCategoryCounts = async (req, res) => {
+  try {
+    const categories = await Category.find();
+    
+    for (const category of categories) {
+      const count = await Course.countDocuments({ category: category.name });
+      category.courseCount = count;
+      await category.save();
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Category counts updated successfully',
+    });
+  } catch (error) {
+    console.error('Failed to update category counts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update category counts',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = exports;
+

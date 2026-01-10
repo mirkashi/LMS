@@ -274,6 +274,13 @@ export default function CreateCoursePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Only submit the form when on step 3 (final step)
+    if (currentStep !== 3) {
+      // If not on step 3, just move to next step
+      handleNext();
+      return;
+    }
+    
     if (!validateStep(currentStep)) return;
 
     setLoading(true);

@@ -213,4 +213,48 @@ router.put(
   adminController.rejectEnrollment
 );
 
+// Category management
+router.get(
+  '/categories',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getAllCategories
+);
+
+router.get(
+  '/categories/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getCategory
+);
+
+router.post(
+  '/categories',
+  authMiddleware,
+  adminMiddleware,
+  adminController.createCategory
+);
+
+router.put(
+  '/categories/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateCategory
+);
+
+router.delete(
+  '/categories/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteCategory
+);
+
+router.post(
+  '/categories/update-counts',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateCategoryCounts
+);
+
 module.exports = router;
+
