@@ -44,9 +44,9 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-// Create slug from name before saving
-categorySchema.pre('save', function (next) {
-  if (this.isModified('name')) {
+// Create slug from name before validation
+categorySchema.pre('validate', function (next) {
+  if (this.name && (!this.slug || this.isModified('name'))) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
