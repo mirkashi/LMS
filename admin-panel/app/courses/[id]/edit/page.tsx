@@ -14,6 +14,8 @@ import {
   ArrowLeftIcon,
   TrashIcon,
   PlusIcon,
+  CalendarIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
 
 interface FormData {
@@ -36,6 +38,15 @@ interface FormData {
   documents: File[];
   isPublished: boolean;
   accessLevel: 'free' | 'paid' | 'premium';
+}
+
+interface DailyVideoLink {
+  _id?: string;
+  title: string;
+  videoLink: string;
+  description: string;
+  date: string;
+  isActive: boolean;
 }
 
 export default function EditCoursePage() {
@@ -71,6 +82,18 @@ export default function EditCoursePage() {
   const thumbnailRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const documentsRef = useRef<HTMLInputElement>(null);
+
+  // Daily Video Link States
+  const [dailyVideoLinks, setDailyVideoLinks] = useState<DailyVideoLink[]>([]);
+  const [showAddVideoLinkModal, setShowAddVideoLinkModal] = useState(false);
+  const [editingVideoLink, setEditingVideoLink] = useState<DailyVideoLink | null>(null);
+  const [videoLinkForm, setVideoLinkForm] = useState({
+    title: '',
+    videoLink: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    isActive: true,
+  });
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -134,6 +157,123 @@ export default function EditCoursePage() {
       fetchCourse();
     }
   }, [courseId, router]);
+
+  // Fetch daily video links
+  useEffect(() => {
+    const fetchDailyVideoLinks = async () => {
+      if (!courseId) return;
+
+      const token = localStorage.getItem('adminToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/courses/${courseId}/daily-video-links`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setDailyVideoLinks(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch daily video links:', error);
+      }
+    };
+
+    fetchDailyVideoLinks();
+  }, [courseId]);
+
+  const handleSaveVideoLink = async () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token || !courseId) return;
+
+    try {
+      const url = editingVideoLink
+        ? `${process.env.NEXT_PUBLIC_API_URL}/admin/daily-video-links/${editingVideoLink._id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/admin/courses/${courseId}/daily-video-links`;
+
+      const response = await fetch(url, {
+        method: editingVideoLink ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(videoLinkForm),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (editingVideoLink) {
+          setDailyVideoLinks(dailyVideoLinks.map(link => 
+            link._id === editingVideoLink._id ? data.data : link
+          ));
+        } else {
+          setDailyVideoLinks([...dailyVideoLinks, data.data]);
+        }
+
+        setShowAddVideoLinkModal(false);
+        setEditingVideoLink(null);
+        setVideoLinkForm({
+          title: '',
+          videoLink: '',
+          description: '',
+          date: new Date().toISOString().split('T')[0],
+          isActive: true,
+        });
+        setSuccessMessage(editingVideoLink ? 'Video link updated!' : 'Video link added!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to save video link:', error);
+      setErrors({ videoLink: 'Failed to save video link' });
+    }
+  };
+
+  const handleDeleteVideoLink = async (linkId: string) => {
+    if (!confirm('Are you sure you want to delete this video link?')) return;
+
+    const token = localStorage.getItem('adminToken');
+    if (!token) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/daily-video-links/${linkId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        setDailyVideoLinks(dailyVideoLinks.filter(link => link._id !== linkId));
+        setSuccessMessage('Video link deleted!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to delete video link:', error);
+      setErrors({ videoLink: 'Failed to delete video link' });
+    }
+  };
+
+  const handleEditVideoLink = (link: DailyVideoLink) => {
+    setEditingVideoLink(link);
+    setVideoLinkForm({
+      title: link.title,
+      videoLink: link.videoLink,
+      description: link.description,
+      date: link.date.split('T')[0],
+      isActive: link.isActive,
+    });
+    setShowAddVideoLinkModal(true);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -501,6 +641,101 @@ export default function EditCoursePage() {
             </div>
           </div>
 
+          {/* Daily Video Links */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Daily Video Links</h2>
+                <p className="text-sm text-gray-600 mt-1">Add daily video content for enrolled students</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingVideoLink(null);
+                  setVideoLinkForm({
+                    title: '',
+                    videoLink: '',
+                    description: '',
+                    date: new Date().toISOString().split('T')[0],
+                    isActive: true,
+                  });
+                  setShowAddVideoLinkModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                <PlusIcon className="w-5 h-5" />
+                Add Video Link
+              </button>
+            </div>
+
+            {dailyVideoLinks.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <LinkIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">No daily video links added yet</p>
+                <p className="text-sm text-gray-500 mt-1">Add daily content for your students to access</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {dailyVideoLinks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((link) => (
+                  <div
+                    key={link._id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-gray-900">{link.title}</h3>
+                          {link.isActive && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                              Active
+                            </span>
+                          )}
+                          {new Date(link.date).toDateString() === new Date().toDateString() && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                              Today
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{link.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon className="w-4 h-4" />
+                            {new Date(link.date).toLocaleDateString()}
+                          </span>
+                          <a
+                            href={link.videoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <LinkIcon className="w-4 h-4" />
+                            View Link
+                          </a>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => handleEditVideoLink(link)}
+                          className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVideoLink(link._id!)}
+                          className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Publishing */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Publishing</h2>
@@ -554,6 +789,115 @@ export default function EditCoursePage() {
             </button>
           </div>
         </form>
+
+        {/* Add/Edit Video Link Modal */}
+        {showAddVideoLinkModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {editingVideoLink ? 'Edit Video Link' : 'Add Daily Video Link'}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAddVideoLinkModal(false);
+                      setEditingVideoLink(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={videoLinkForm.title}
+                      onChange={(e) => setVideoLinkForm({ ...videoLinkForm, title: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., Day 1: Introduction to eBay"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Video Link <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={videoLinkForm.videoLink}
+                      onChange={(e) => setVideoLinkForm({ ...videoLinkForm, videoLink: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="YouTube, Vimeo, or direct video URL"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={videoLinkForm.description}
+                      onChange={(e) => setVideoLinkForm({ ...videoLinkForm, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Brief description of this video..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={videoLinkForm.date}
+                      onChange={(e) => setVideoLinkForm({ ...videoLinkForm, date: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={videoLinkForm.isActive}
+                        onChange={(e) => setVideoLinkForm({ ...videoLinkForm, isActive: e.target.checked })}
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                      <span className="ml-3 font-medium text-gray-900">Active</span>
+                    </label>
+                    <p className="text-sm text-gray-500 ml-8">Only active videos are visible to students</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowAddVideoLinkModal(false);
+                      setEditingVideoLink(null);
+                    }}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveVideoLink}
+                    disabled={!videoLinkForm.title || !videoLinkForm.videoLink || !videoLinkForm.date}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {editingVideoLink ? 'Update' : 'Add'} Video Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

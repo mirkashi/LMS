@@ -256,5 +256,41 @@ router.post(
   adminController.updateCategoryCounts
 );
 
+// Daily Video Link management
+router.get(
+  '/courses/:courseId/daily-video-links',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getDailyVideoLinks
+);
+
+router.get(
+  '/courses/:courseId/daily-video-links/today',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getTodayVideoLink
+);
+
+router.post(
+  '/courses/:courseId/daily-video-links',
+  authMiddleware,
+  adminMiddleware,
+  adminController.createDailyVideoLink
+);
+
+router.put(
+  '/daily-video-links/:linkId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateDailyVideoLink
+);
+
+router.delete(
+  '/daily-video-links/:linkId',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteDailyVideoLink
+);
+
 module.exports = router;
 

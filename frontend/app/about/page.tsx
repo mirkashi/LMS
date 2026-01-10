@@ -176,7 +176,7 @@ export default function About() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
-              { name: "Sarah Johnson", role: "Founder & CEO", color: "bg-blue-100" },
+              { name: "Shahnam Khan", role: "Founder & CEO", color: "bg-blue-100" },
               { name: "Michael Chen", role: "Head of Education", color: "bg-purple-100" },
               { name: "Emma Davis", role: "Community Manager", color: "bg-pink-100" }
             ].map((member, index) => (

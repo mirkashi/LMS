@@ -21,6 +21,8 @@ export default function CourseDetail() {
   const [activeVideoLink, setActiveVideoLink] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [videoProgress, setVideoProgress] = useState<any>({});
+  const [dailyVideoLinks, setDailyVideoLinks] = useState<any[]>([]);
+  const [todayVideoLink, setTodayVideoLink] = useState<any>(null);
 
   // Helper function to convert video links to embed URLs
   const getEmbedUrl = (url: string) => {
@@ -74,6 +76,32 @@ export default function CourseDetail() {
         if (data.success) {
           setCourse(data.data);
           setEnrollmentStatus(data.data.enrollmentStatus);
+          
+          // Fetch daily video links if user is enrolled
+          if (data.data.isEnrolled && token) {
+            try {
+              const linksResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/daily-video-links?active=true`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const linksData = await linksResponse.json();
+              if (linksData.success) {
+                setDailyVideoLinks(linksData.data || []);
+              }
+              
+              // Fetch today's video link
+              const todayResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/daily-video-links/today`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const todayData = await todayResponse.json();
+              if (todayData.success && todayData.data) {
+                setTodayVideoLink(todayData.data);
+              }
+            } catch (error) {
+              console.error('Failed to fetch daily video links:', error);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch course:', error);
@@ -201,6 +229,95 @@ export default function CourseDetail() {
                         videoLink={course.introVideoUrl || course.introVideoLink || ''}
                         autoSaveProgress={course.isEnrolled}
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* Today's Video Link - Shown to Enrolled Users */}
+                {course.isEnrolled && todayVideoLink && (
+                  <div className="mb-6 bg-gradient-to-r from-yellow-50 to-amber-50 p-6 rounded-lg border-2 border-yellow-400 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-amber-900 flex items-center">
+                        <span className="mr-2">🎯</span>
+                        Today's Video Link
+                        <span className="ml-3 text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full">
+                          {new Date(todayVideoLink.date).toLocaleDateString()}
+                        </span>
+                      </h3>
+                    </div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-2">{todayVideoLink.title}</h4>
+                    {todayVideoLink.description && (
+                      <p className="text-sm text-gray-600 mb-3">{todayVideoLink.description}</p>
+                    )}
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+                      <VideoPlayer
+                        courseId={courseId}
+                        videoLink={todayVideoLink.videoLink}
+                        autoSaveProgress={course.isEnrolled}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* All Daily Video Links - Shown to Enrolled Users */}
+                {course.isEnrolled && dailyVideoLinks.length > 0 && (
+                  <div className="mb-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">📚</span>
+                      All Video Links
+                      <span className="ml-3 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                        {dailyVideoLinks.length} video{dailyVideoLinks.length !== 1 ? 's' : ''}
+                      </span>
+                    </h3>
+                    <div className="space-y-3">
+                      {dailyVideoLinks.map((link: any) => {
+                        const isToday = todayVideoLink && link._id === todayVideoLink._id;
+                        return (
+                          <div
+                            key={link._id}
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              isToday
+                                ? 'border-yellow-400 bg-yellow-50'
+                                : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-gray-900">{link.title}</h4>
+                                  {isToday && (
+                                    <span className="text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full font-semibold">
+                                      Today
+                                    </span>
+                                  )}
+                                </div>
+                                {link.description && (
+                                  <p className="text-sm text-gray-600 mb-2">{link.description}</p>
+                                )}
+                                <p className="text-xs text-gray-500">
+                                  {new Date(link.date).toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  })}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setActiveVideoLink(link.videoLink);
+                                  setActiveVideoUrl(null);
+                                  setActiveVideoStorageType(null);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                ▶️ Watch
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

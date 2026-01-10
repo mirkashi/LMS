@@ -6,6 +6,7 @@ const Enrollment = require('../models/Enrollment');
 const CourseAuditLog = require('../models/CourseAuditLog');
 const PaymentStatusTracking = require('../models/PaymentStatusTracking');
 const Category = require('../models/Category');
+const DailyVideoLink = require('../models/DailyVideoLink');
 const courseAuditController = require('./courseAuditController');
 const paymentTrackingController = require('./paymentTrackingController');
 
@@ -1819,6 +1820,189 @@ exports.updateCategoryCounts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update category counts',
+      error: error.message,
+    });
+  }
+};
+
+// ==================== DAILY VIDEO LINK MANAGEMENT ====================
+
+// Get all daily video links for a course
+exports.getDailyVideoLinks = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { active } = req.query;
+    
+    const filter = { course: courseId };
+    if (active === 'true') {
+      filter.isActive = true;
+    }
+    
+    const links = await DailyVideoLink.find(filter)
+      .populate('addedBy', 'name email')
+      .sort({ date: -1 });
+    
+    res.status(200).json({
+      success: true,
+      data: links,
+    });
+  } catch (error) {
+    console.error('Failed to fetch daily video links:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch daily video links',
+      error: error.message,
+    });
+  }
+};
+
+// Get today's video link for a course
+exports.getTodayVideoLink = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const link = await DailyVideoLink.findOne({
+      course: courseId,
+      isActive: true,
+      date: { $gte: today, $lt: tomorrow },
+    })
+      .populate('addedBy', 'name email')
+      .sort({ date: -1 });
+    
+    res.status(200).json({
+      success: true,
+      data: link,
+    });
+  } catch (error) {
+    console.error('Failed to fetch today\'s video link:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch today\'s video link',
+      error: error.message,
+    });
+  }
+};
+
+// Create daily video link
+exports.createDailyVideoLink = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { title, videoLink, description, date } = req.body;
+    
+    if (!title || !videoLink) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and video link are required',
+      });
+    }
+    
+    // Verify course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+    
+    const dailyVideoLink = await DailyVideoLink.create({
+      course: courseId,
+      title,
+      videoLink,
+      description: description || '',
+      date: date || new Date(),
+      addedBy: req.user.id || req.user.userId,
+    });
+    
+    const populated = await DailyVideoLink.findById(dailyVideoLink._id)
+      .populate('addedBy', 'name email');
+    
+    res.status(201).json({
+      success: true,
+      message: 'Daily video link created successfully',
+      data: populated,
+    });
+  } catch (error) {
+    console.error('Failed to create daily video link:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create daily video link',
+      error: error.message,
+    });
+  }
+};
+
+// Update daily video link
+exports.updateDailyVideoLink = async (req, res) => {
+  try {
+    const { linkId } = req.params;
+    const { title, videoLink, description, date, isActive } = req.body;
+    
+    const dailyVideoLink = await DailyVideoLink.findById(linkId);
+    
+    if (!dailyVideoLink) {
+      return res.status(404).json({
+        success: false,
+        message: 'Daily video link not found',
+      });
+    }
+    
+    if (title) dailyVideoLink.title = title;
+    if (videoLink) dailyVideoLink.videoLink = videoLink;
+    if (description !== undefined) dailyVideoLink.description = description;
+    if (date) dailyVideoLink.date = date;
+    if (isActive !== undefined) dailyVideoLink.isActive = isActive;
+    
+    await dailyVideoLink.save();
+    
+    const populated = await DailyVideoLink.findById(linkId)
+      .populate('addedBy', 'name email');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Daily video link updated successfully',
+      data: populated,
+    });
+  } catch (error) {
+    console.error('Failed to update daily video link:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update daily video link',
+      error: error.message,
+    });
+  }
+};
+
+// Delete daily video link
+exports.deleteDailyVideoLink = async (req, res) => {
+  try {
+    const { linkId } = req.params;
+    
+    const dailyVideoLink = await DailyVideoLink.findById(linkId);
+    
+    if (!dailyVideoLink) {
+      return res.status(404).json({
+        success: false,
+        message: 'Daily video link not found',
+      });
+    }
+    
+    await DailyVideoLink.findByIdAndDelete(linkId);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Daily video link deleted successfully',
+    });
+  } catch (error) {
+    console.error('Failed to delete daily video link:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete daily video link',
       error: error.message,
     });
   }

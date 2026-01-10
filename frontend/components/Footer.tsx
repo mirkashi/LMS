@@ -52,12 +52,28 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>&copy; {new Date().getFullYear()} 9tangle. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Instagram</a>
-            <a href="#" className="hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
+        <div className="border-t border-gray-800 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
+              <p>&copy; {new Date().getFullYear()} 9tangle. All rights reserved.</p>
+              <span className="hidden md:inline text-gray-700 mx-36"></span>
+              <p className="text-gray-400">
+                This website is created by{' '}
+                <a 
+                  href="https://www.linkedin.com/in/mir-kashif-28987428b/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 font-medium transition-colors underline decoration-blue-400/30 hover:decoration-blue-300"
+                >
+                  Kashif Mir
+                </a>
+              </p>
+            </div>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-white transition-colors">Instagram</a>
+              <a href="#" className="hover:text-white transition-colors">Twitter</a>
+              <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
+            </div>
           </div>
         </div>
       </div>
