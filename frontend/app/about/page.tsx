@@ -18,8 +18,19 @@ const staggerContainer = {
   }
 };
 
+interface TeamMember {
+  _id: string;
+  name: string;
+  role: string;
+  bio: string;
+  imageUrl: string;
+  order: number;
+}
+
 export default function About() {
   const [headerBackgroundImage, setHeaderBackgroundImage] = useState('');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingTeam, setLoadingTeam] = useState(true);
 
   useEffect(() => {
     const fetchBackgroundImage = async () => {
@@ -39,7 +50,22 @@ export default function About() {
       }
     };
 
+    const fetchTeamMembers = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/team-members`);
+        const data = await response.json();
+        if (data.success) {
+          setTeamMembers(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch team members:', error);
+      } finally {
+        setLoadingTeam(false);
+      }
+    };
+
     fetchBackgroundImage();
+    fetchTeamMembers();
   }, []);
 
   return (
@@ -174,28 +200,66 @@ export default function About() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              { name: "Shahnam Khan", role: "Founder & CEO", color: "bg-blue-100" },
-              { name: "Michael Chen", role: "Head of Education", color: "bg-purple-100" },
-              { name: "Emma Davis", role: "Community Manager", color: "bg-pink-100" }
-            ].map((member, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center group"
-              >
-                <div className={`w-48 h-48 mx-auto rounded-full ${member.color} mb-6 overflow-hidden relative flex items-center justify-center text-4xl font-bold text-gray-400 group-hover:scale-105 transition-transform duration-300`}>
-                  {member.name.charAt(0)}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
-                <p className="text-blue-600 font-medium">{member.role}</p>
-              </motion.div>
-            ))}
-          </div>
+          {loadingTeam ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : teamMembers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {teamMembers.map((member, index) => (
+                <motion.div 
+                  key={member._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="text-center group"
+                >
+                  <div className="w-48 h-48 mx-auto rounded-full mb-6 overflow-hidden relative shadow-lg group-hover:shadow-2xl transition-all duration-300">
+                    {member.imageUrl ? (
+                      <img
+                        src={member.imageUrl.startsWith('http') ? member.imageUrl : `${process.env.NEXT_PUBLIC_API_URL}${member.imageUrl}`}
+                        alt={member.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-5xl font-bold text-white group-hover:scale-105 transition-transform duration-300">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
+                  <p className="text-blue-600 font-medium mb-3">{member.role}</p>
+                  {member.bio && (
+                    <p className="text-gray-600 text-sm leading-relaxed max-w-xs mx-auto">{member.bio}</p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {[
+                { name: "Shahnam Khan", role: "Founder & CEO", color: "bg-blue-100" },
+                { name: "Michael Chen", role: "Head of Education", color: "bg-purple-100" },
+                { name: "Emma Davis", role: "Community Manager", color: "bg-pink-100" }
+              ].map((member, index) => (
+                <motion.div 
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="text-center group"
+                >
+                  <div className={`w-48 h-48 mx-auto rounded-full ${member.color} mb-6 overflow-hidden relative flex items-center justify-center text-4xl font-bold text-gray-400 group-hover:scale-105 transition-transform duration-300`}>
+                    {member.name.charAt(0)}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
+                  <p className="text-blue-600 font-medium">{member.role}</p>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
