@@ -530,5 +530,6 @@ export default function ProductPage() {
         </AnimatePresence>
       </div>
     </main>
+    </>
   );
 }
