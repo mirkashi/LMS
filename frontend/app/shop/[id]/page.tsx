@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import AppImage from "@/components/AppImage";
+import { JsonLd, generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 interface Product {
   _id: string;
@@ -189,7 +190,22 @@ export default function ProductPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12">
+    <>
+      {/* SEO: JSON-LD Structured Data */}
+      {product && (
+        <JsonLd
+          data={[
+            generateProductSchema(product),
+            generateBreadcrumbSchema([
+              { name: 'Home', url: '/' },
+              { name: 'Shop', url: '/shop' },
+              { name: product.name, url: `/shop/${product._id}` },
+            ]),
+          ]}
+        />
+      )}
+      
+      <main className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <Link href="/shop" className="inline-flex items-center gap-1 text-gray-700 hover:text-gray-900">

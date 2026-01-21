@@ -7,6 +7,7 @@ import AppImage from '@/components/AppImage';
 import VideoPlayer from '@/components/VideoPlayer';
 import EnrollmentPaymentModal from '@/components/EnrollmentPaymentModal';
 import { getAssetUrl } from '@/lib/assets';
+import { JsonLd, generateCourseSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
 export default function CourseDetail() {
   const params = useParams();
@@ -198,6 +199,20 @@ export default function CourseDetail() {
 
   return (
     <>
+      {/* SEO: JSON-LD Structured Data */}
+      {course && (
+        <JsonLd
+          data={[
+            generateCourseSchema(course),
+            generateBreadcrumbSchema([
+              { name: 'Home', url: '/' },
+              { name: 'Courses', url: '/courses' },
+              { name: course.title, url: `/courses/${course._id}` },
+            ]),
+          ]}
+        />
+      )}
+      
       <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         {/* Modern Hero Header */}
         <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white overflow-hidden">

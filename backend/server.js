@@ -70,6 +70,7 @@ app.use('/api/video-progress', require('./routes/videoProgressRoutes'));
 app.use('/api/page-backgrounds', require('./routes/pageBackgroundRoutes'));
 app.use('/api/homepage-content', require('./routes/homePageContentRoutes'));
 app.use('/api/team-members', require('./routes/teamMemberRoutes'));
+app.use('/api/seo', require('./routes/seo'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
