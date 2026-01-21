@@ -95,7 +95,20 @@ async function createFolderIfNotExists(folderName, parentFolderId) {
 // Save file locally as fallback
 async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
   try {
-    const uploadsDir = path.join(__dirname, '../uploads', subfolder);
+    // Ensure subfolder is a safe single directory name
+    let safeSubfolder = typeof subfolder === 'string' && subfolder.length > 0 ? subfolder : 'courses';
+    if (!/^[a-zA-Z0-9_-]+$/.test(safeSubfolder)) {
+      console.warn(`Invalid subfolder "${safeSubfolder}" provided to saveFileLocally; falling back to "courses".`);
+      safeSubfolder = 'courses';
+    }
+
+    const uploadsRoot = path.resolve(__dirname, '../uploads');
+    const uploadsDir = path.resolve(uploadsRoot, safeSubfolder);
+
+    // Ensure the resolved uploadsDir is within the uploadsRoot directory
+    if (uploadsDir !== uploadsRoot && !uploadsDir.startsWith(uploadsRoot + path.sep)) {
+      throw new Error('Invalid upload directory resolved when saving file locally');
+    }
     
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadsDir)) {
@@ -110,7 +123,7 @@ async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
     // Return URL path that can be accessed via Express static middleware
     return {
       id: filename,
-      url: `/uploads/${subfolder}/${filename}`,
+      url: `/uploads/${safeSubfolder}/${filename}`,
       name: filename,
       size: buffer.length,
       storageType: 'local'
