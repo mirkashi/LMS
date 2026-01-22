@@ -480,7 +480,7 @@ exports.resetPassword = async (req, res) => {
 // Set Password After Email Verification
 exports.setPassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -488,6 +488,15 @@ exports.setPassword = async (req, res) => {
         message: 'Email and password are required',
       });
     }
+
+    if (typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+      });
+    }
+
+    email = email.trim().toLowerCase();
 
     // Password validation: only enforce length between 8 and 12 characters
     if (password.length < 8 || password.length > 12) {
