@@ -79,12 +79,12 @@ const getEmbedUrl = (url: string) => {
       }
     }
 
-    // Vimeo
-    if (url.includes('vimeo.com')) {
-      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-      if (videoId) {
-        return `https://player.vimeo.com/video/${videoId}`;
-      }
+    // Vimeo - only treat as Vimeo if the string is a simple Vimeo path,
+    // not just any URL containing "vimeo.com" as a substring.
+    const vimeoPathMatch = url.match(/^\/?vimeo\.com\/([^?&#/]+)/i);
+    if (vimeoPathMatch && vimeoPathMatch[1]) {
+      const videoId = vimeoPathMatch[1];
+      return `https://player.vimeo.com/video/${videoId}`;
     }
   }
 
