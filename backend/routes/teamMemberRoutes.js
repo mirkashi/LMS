@@ -16,9 +16,14 @@ const teamMemberAdminLimiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs on admin team member routes
 });
 
+const teamMemberPublicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // limit each IP to 30 requests per windowMs on public team member routes
+});
+
 // Public routes
-router.get('/', getAllTeamMembers);
-router.get('/:id', getTeamMemberById);
+router.get('/', teamMemberPublicLimiter, getAllTeamMembers);
+router.get('/:id', teamMemberPublicLimiter, getTeamMemberById);
 
 // Admin routes
 router.post('/', authMiddleware, adminMiddleware, teamMemberAdminLimiter, uploadMiddleware.single('image'), createTeamMember);
