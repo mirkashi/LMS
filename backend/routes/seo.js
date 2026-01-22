@@ -7,13 +7,19 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Product = require('../models/Product');
+const rateLimit = require('express-rate-limit');
+
+const seoLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
 
 /**
  * @route   GET /api/seo/sitemap-data
  * @desc    Get all data needed for sitemap generation
  * @access  Public
  */
-router.get('/sitemap-data', async (req, res) => {
+router.get('/sitemap-data', seoLimiter, async (req, res) => {
   try {
     // Fetch courses with minimal fields
     const courses = await Course.find({ isPublished: { $ne: false } })
@@ -67,7 +73,7 @@ router.get('/sitemap-data', async (req, res) => {
  * @desc    Get SEO metadata for a specific page
  * @access  Public
  */
-router.get('/meta/:pageType/:id?', async (req, res) => {
+router.get('/meta/:pageType/:id?', seoLimiter, async (req, res) => {
   try {
     const { pageType, id } = req.params;
     let metadata = {};
@@ -152,7 +158,7 @@ router.get('/meta/:pageType/:id?', async (req, res) => {
  * @desc    Get SEO statistics (total courses, products, etc.)
  * @access  Public
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', seoLimiter, async (req, res) => {
   try {
     const [totalCourses, totalProducts, totalCategories] = await Promise.all([
       Course.countDocuments({ isPublished: { $ne: false } }),
