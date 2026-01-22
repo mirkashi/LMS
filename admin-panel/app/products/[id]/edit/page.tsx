@@ -25,6 +25,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [success, setSuccess] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const totalSteps = 3;
 
@@ -39,6 +41,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
     const user = JSON.parse(userData);
     setUser(user);
+
+    // Fetch categories
+    fetchCategories();
 
     // Fetch product details
     const fetchProduct = async () => {
@@ -79,6 +84,29 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
     fetchProduct();
   }, [router, params.id]);
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/categories`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Filter to show only product-related categories (exclude course categories)
+        const productCategories = data.data.filter((cat: any) => {
+          const courseCategoryNames = ['programming', 'design', 'business', 'marketing', 'personal-development', 'data-science'];
+          return !courseCategoryNames.includes(cat.slug);
+        });
+        setCategories(productCategories);
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -365,14 +393,16 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                       name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={loadingCategories}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                       required
                     >
-                      <option value="">Select a category</option>
-                      <option value="course">Course</option>
-                      <option value="ebook">eBook</option>
-                      <option value="tool">Tool</option>
-                      <option value="other">Other</option>
+                      <option value="">{loadingCategories ? 'Loading categories...' : 'Select a category'}</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat.slug}>
+                          {cat.icon} {cat.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

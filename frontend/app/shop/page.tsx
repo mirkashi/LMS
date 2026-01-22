@@ -30,6 +30,18 @@ export default function Shop() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`);
         if (response.ok) {
           const data = await response.json();
+          console.log('📦 Products fetched from API:', data.data?.length || 0);
+          if (data.data && data.data.length > 0) {
+            const firstProduct = data.data[0];
+            console.log('First product sample:', {
+              name: firstProduct.name,
+              hasImages: !!firstProduct.images,
+              imagesCount: firstProduct.images?.length || 0,
+              images: firstProduct.images,
+              hasLegacyImage: !!firstProduct.image,
+              legacyImage: firstProduct.image
+            });
+          }
           setProducts(data.data || []);
         }
       } catch (error) {

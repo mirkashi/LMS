@@ -69,6 +69,9 @@ export default function ProductPage() {
           throw new Error('Product not found');
         }
         const data = await response.json();
+        console.log('Product data received:', data.data);
+        console.log('Product images:', data.data?.images);
+        console.log('Product image (legacy):', data.data?.image);
         setProduct(data.data);
         setAvgRating(data.data?.rating || 0);
         setTotalRatings(data.data?.totalRatings || 0);
@@ -167,6 +170,7 @@ export default function ProductPage() {
 
   const images = useMemo(() => {
     const gallery = product?.images && product.images.length > 0 ? product.images : product?.image ? [product.image] : [];
+    console.log('Images gallery computed:', gallery);
     return gallery.length ? gallery : [];
   }, [product]);
 

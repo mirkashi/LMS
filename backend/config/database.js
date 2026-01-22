@@ -7,6 +7,9 @@ const connectMongoDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/9tangle', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // 30 seconds
+      socketTimeoutMS: 45000, // 45 seconds
+      family: 4 // Use IPv4, skip trying IPv6
     });
     console.log('✅ MongoDB connected');
     return conn;

@@ -27,7 +27,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/9tangle';
-mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 })
+mongoose.connect(mongoUri, { 
+  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+  socketTimeoutMS: 45000, // Socket timeout
+  family: 4 // Use IPv4, skip trying IPv6
+})
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => {
   console.warn('⚠️ MongoDB connection failed, continuing with app (using mock data):', err.message);

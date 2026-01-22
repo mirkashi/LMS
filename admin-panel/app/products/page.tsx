@@ -138,9 +138,9 @@ export default function ProductsPage() {
                     <tr key={product._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          {product.image && (
+                          {(product.images?.[0] || product.image) && (
                             <AppImage
-                              path={product.image}
+                              path={product.images?.[0] || product.image}
                               alt={product.name}
                               className="w-10 h-10 rounded-lg object-cover mr-3"
                             />

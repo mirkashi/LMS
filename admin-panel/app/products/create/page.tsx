@@ -22,6 +22,11 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryData, setNewCategoryData] = useState({ name: '', description: '', icon: '📦', color: '#3B82F6' });
+  const [categoryError, setCategoryError] = useState('');
 
   const totalSteps = 3;
 
@@ -36,6 +41,9 @@ export default function CreateProductPage() {
 
     const user = JSON.parse(userData);
     setUser(user);
+
+    // Fetch categories
+    fetchCategories();
 
     // Development mode: Monitor for unexpected API calls
     let cleanup = () => {}; // Default no-op cleanup
@@ -61,6 +69,63 @@ export default function CreateProductPage() {
     
     return cleanup;
   }, [router, currentStep, loading]);
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/categories`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Filter to show only product-related categories (exclude course categories)
+        // We'll mark product categories by checking if they're not in the common course category list
+        const productCategories = data.data.filter((cat: any) => {
+          const courseCategoryNames = ['programming', 'design', 'business', 'marketing', 'personal-development', 'data-science'];
+          return !courseCategoryNames.includes(cat.slug);
+        });
+        setCategories(productCategories);
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryData.name.trim()) {
+      setCategoryError('Category name is required');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newCategoryData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCategories([...categories, data.data]);
+        setFormData({ ...formData, category: data.data.slug });
+        setShowCategoryModal(false);
+        setNewCategoryData({ name: '', description: '', icon: '📦', color: '#3B82F6' });
+        setCategoryError('');
+      } else {
+        const data = await response.json();
+        setCategoryError(data.message || 'Failed to create category');
+      }
+    } catch (err) {
+      setCategoryError('An error occurred while creating the category');
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -379,21 +444,35 @@ export default function CreateProductPage() {
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
                       Category *
                     </label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select a category</option>
-                      <option value="course-bundle">Course Bundle</option>
-                      <option value="ebook">eBook</option>
-                      <option value="tools">Tools & Resources</option>
-                      <option value="templates">Templates</option>
-                      <option value="coaching">Coaching</option>
-                      <option value="other">Other</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        required
+                        disabled={loadingCategories}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      >
+                        <option value="">{loadingCategories ? 'Loading categories...' : 'Select a category'}</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat.slug}>
+                            {cat.icon} {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowCategoryModal(true)}
+                        className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                      >
+                        + New Category
+                      </button>
+                    </div>
+                    {categories.length === 0 && !loadingCategories && (
+                      <p className="mt-2 text-sm text-amber-600">
+                        No product categories found. Click "+ New Category" to create one.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -577,6 +656,98 @@ export default function CreateProductPage() {
             </form>
           </div>
         </div>
+
+        {/* Category Creation Modal */}
+        {showCategoryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Create New Product Category</h3>
+              
+              {categoryError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  {categoryError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCategoryData.name}
+                    onChange={(e) => setNewCategoryData({ ...newCategoryData, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., eBooks, Templates, Tools"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newCategoryData.description}
+                    onChange={(e) => setNewCategoryData({ ...newCategoryData, description: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    placeholder="Brief description of this category"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Icon (Emoji)
+                    </label>
+                    <input
+                      type="text"
+                      value={newCategoryData.icon}
+                      onChange={(e) => setNewCategoryData({ ...newCategoryData, icon: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="📦"
+                      maxLength={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Color
+                    </label>
+                    <input
+                      type="color"
+                      value={newCategoryData.color}
+                      onChange={(e) => setNewCategoryData({ ...newCategoryData, color: e.target.value })}
+                      className="w-full h-[42px] px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    setNewCategoryData({ name: '', description: '', icon: '📦', color: '#3B82F6' });
+                    setCategoryError('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCategory}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create Category
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
