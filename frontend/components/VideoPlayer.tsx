@@ -124,7 +124,7 @@ export default function VideoPlayer({
         lowerPath.endsWith('.ogg');
       const isDriveStream =
         pathname.includes('/media/drive/') ||
-        hostname.endsWith('googleusercontent.com');
+        hostname === 'lh3.googleusercontent.com';
 
       if (isDirectFile || isDriveStream) {
 
