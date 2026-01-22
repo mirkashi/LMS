@@ -228,7 +228,7 @@ router.post('/cart', authMiddleware, cartLimiter, async (req, res) => {
 });
 
 // Update Cart Item Quantity
-router.put('/cart/:productId', authMiddleware, async (req, res) => {
+router.put('/cart/:productId', authMiddleware, cartLimiter, async (req, res) => {
   try {
     const { quantity } = req.body;
     const user = await User.findById(req.user.userId);
@@ -247,7 +247,7 @@ router.put('/cart/:productId', authMiddleware, async (req, res) => {
 });
 
 // Remove from Cart
-router.delete('/cart/:productId', authMiddleware, async (req, res) => {
+router.delete('/cart/:productId', authMiddleware, cartLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     user.cart = user.cart.filter(item => item.product.toString() !== req.params.productId);
