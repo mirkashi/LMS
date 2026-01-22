@@ -4,6 +4,14 @@ const adminController = require('../controllers/adminController');
 const orderController = require('../controllers/orderController');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const uploadMiddleware = require('../middleware/upload');
+const rateLimit = require('express-rate-limit');
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
+router.use(adminLimiter);
 
 // User management
 router.get(
