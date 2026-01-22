@@ -27,18 +27,60 @@ export default function CourseDetail() {
 
   // Helper function to convert video links to embed URLs
   const getEmbedUrl = (url: string) => {
+    let parsed: URL;
+
+    try {
+      parsed = new URL(url);
+    } catch {
+      // If the URL is invalid, fall back to the original value
+      return url;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
     // YouTube
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const videoId = url.includes('youtu.be') 
-        ? url.split('youtu.be/')[1]?.split('?')[0]
-        : new URLSearchParams(new URL(url).search).get('v');
-      return `https://www.youtube.com/embed/${videoId}`;
+    if (
+      hostname === 'youtube.com' ||
+      hostname === 'www.youtube.com' ||
+      hostname === 'm.youtube.com' ||
+      hostname === 'youtu.be'
+    ) {
+      let videoId: string | null = null;
+
+      if (hostname === 'youtu.be') {
+        // Short URL format: https://youtu.be/{id}
+        videoId = parsed.pathname.split('/').filter(Boolean)[0] || null;
+      } else {
+        // Standard format: https://www.youtube.com/watch?v={id}
+        videoId = parsed.searchParams.get('v');
+      }
+
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      // If we can't determine the ID, just return the original URL
+      return url;
     }
+
     // Vimeo
-    if (url.includes('vimeo.com')) {
-      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-      return `https://player.vimeo.com/video/${videoId}`;
+    if (hostname === 'vimeo.com' || hostname === 'www.vimeo.com' || hostname === 'player.vimeo.com') {
+      // Typical format: https://vimeo.com/{id} or https://player.vimeo.com/video/{id}
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      let videoId: string | null = null;
+
+      if (pathParts.length > 0) {
+        // For player.vimeo.com/video/{id}, the ID is usually the last segment
+        videoId = pathParts[pathParts.length - 1] || null;
+      }
+
+      if (videoId) {
+        return `https://player.vimeo.com/video/${videoId}`;
+      }
+
+      return url;
     }
+
     // Return original URL for other platforms
     return url;
   };
