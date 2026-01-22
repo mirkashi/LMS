@@ -51,8 +51,8 @@ router.get(
 router.get(
   '/statistics/:courseId',
   authMiddleware,
-  adminMiddleware,
   videoProgressLimiter,
+  adminMiddleware,
   videoProgressController.getCourseVideoStatistics
 );
 
