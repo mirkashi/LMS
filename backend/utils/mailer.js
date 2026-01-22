@@ -1,6 +1,16 @@
 const nodemailer = require('nodemailer');
 const { logEmail } = require('./emailLogger');
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let transporter;
 
 async function initTransporter() {
@@ -102,6 +112,9 @@ const sendVerificationEmail = async (email, token) => {
 };
 
 const sendVerificationCodeEmail = async (email, code, userName = '') => {
+  const safeUserName = escapeHtml(userName || '');
+  const safeCode = escapeHtml(code);
+
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'noreply@9tangle.com',
     to: email,
@@ -130,7 +143,7 @@ const sendVerificationCodeEmail = async (email, code, userName = '') => {
                 <!-- Body -->
                 <tr>
                   <td style="padding: 40px 30px;">
-                    ${userName ? `<p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hello ${userName},</p>` : '<p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hello,</p>'}
+                    ${safeUserName ? `<p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hello ${safeUserName},</p>` : '<p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hello,</p>'}
                     
                     <p style="font-size: 16px; color: #666; line-height: 1.6; margin: 0 0 20px 0;">
                       Thank you for registering with 9tangle! To complete your registration, please use the verification code below:
@@ -143,7 +156,7 @@ const sendVerificationCodeEmail = async (email, code, userName = '') => {
                           <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 30px; border-radius: 10px; display: inline-block; border: 2px dashed #667eea;">
                             <p style="margin: 0 0 10px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Your Verification Code</p>
                             <p style="margin: 0; font-size: 36px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">
-                              ${code}
+                              ${safeCode}
                             </p>
                           </div>
                         </td>
