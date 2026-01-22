@@ -385,7 +385,23 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    // Ensure email is a string to prevent NoSQL injection via query operators
+    if (typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+      });
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+      });
+    }
+
+    const user = await User.findOne({ email: { $eq: trimmedEmail } });
 
     if (!user) {
       return res.status(404).json({
@@ -402,7 +418,7 @@ exports.forgotPassword = async (req, res) => {
 
     // Send reset email
     try {
-      await sendPasswordResetEmail(email, resetToken);
+      await sendPasswordResetEmail(trimmedEmail, resetToken);
     } catch (emailError) {
       console.error('Email sending failed:', emailError);
     }
