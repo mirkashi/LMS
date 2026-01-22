@@ -15,9 +15,9 @@ const courseAuditRateLimiter = rateLimit({
 // Get course audit log (admin)
 router.get(
   '/:courseId/audit-log',
+  courseAuditRateLimiter,
   authMiddleware,
   adminOnly,
-  courseAuditRateLimiter,
   courseAuditController.getCourseAuditLog
 );
 
