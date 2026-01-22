@@ -26,11 +26,11 @@ router.get(
   progressController.getProgress
 );
 
-  userProgressLimiter,
 // Update lesson progress
 router.put(
   '/enrollments/:enrollmentId/progress',
   authMiddleware,
+  userProgressLimiter,
   progressController.updateLessonProgress
 );
 
