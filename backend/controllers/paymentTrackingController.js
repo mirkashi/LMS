@@ -62,8 +62,11 @@ exports.getUserPaymentStatus = async (req, res) => {
     const { status, limit = 20, page = 1 } = req.query;
 
     let filter = { user: userId };
-    if (status) {
-      filter.status = status;
+    if (typeof status === 'string') {
+      const allowedStatuses = ['approved', 'rejected', 'pending', 'failed'];
+      if (allowedStatuses.includes(status)) {
+        filter.status = status;
+      }
     }
 
     const payments = await PaymentStatusTracking.find(filter)
