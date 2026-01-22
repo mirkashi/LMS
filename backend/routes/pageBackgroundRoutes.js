@@ -40,6 +40,7 @@ router.get(
 // Delete page background (admin only)
 router.delete(
   '/:pageName',
+  adminBackgroundLimiter,
   authMiddleware,
   adminMiddleware,
   pageBackgroundController.deletePageBackground
