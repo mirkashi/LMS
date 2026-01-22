@@ -65,12 +65,24 @@ const resetPasswordLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for setting a new password (e.g., after verification)
+const setPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Max 5 set-password attempts per hour per IP
+  message: {
+    success: false,
+    message: 'Too many password setting attempts. Please try again after an hour.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post('/register', registrationLimiter, authController.register);
 router.post('/verify-email', authController.verifyEmail);
 router.get('/verify-email', authController.verifyEmail);
 router.post('/verify-code', verificationLimiter, authController.verifyEmailCode);
 router.post('/resend-code', resendLimiter, authController.resendVerificationCode);
-router.post('/set-password', authController.setPassword);
+router.post('/set-password', setPasswordLimiter, authController.setPassword);
 router.post('/login', authController.login);
 router.post('/admin-login', authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
