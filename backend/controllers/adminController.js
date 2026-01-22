@@ -1419,9 +1419,15 @@ exports.getAllEnrollments = async (req, res) => {
     const { status, courseId, paymentStatus } = req.query;
     let filter = {};
 
-    if (status) filter.status = status;
-    if (courseId) filter.course = courseId;
-    if (paymentStatus) filter.paymentStatus = paymentStatus;
+    if (typeof status === 'string' && status.trim() !== '') {
+      filter.status = status;
+    }
+    if (typeof courseId === 'string' && courseId.trim() !== '') {
+      filter.course = courseId;
+    }
+    if (typeof paymentStatus === 'string' && paymentStatus.trim() !== '') {
+      filter.paymentStatus = paymentStatus;
+    }
 
     const enrollments = await Enrollment.find(filter)
       .populate('user', 'name email phone avatar')
