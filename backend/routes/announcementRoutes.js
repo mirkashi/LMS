@@ -16,8 +16,14 @@ const adminAnnouncementLimiter = rateLimit({
   max: 100, // limit each IP to 100 admin announcement requests per windowMs
 });
 
+// Rate limiter for public active announcement route
+const publicAnnouncementLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 60, // limit each IP to 60 requests per windowMs on the public endpoint
+});
+
 // Public route
-router.get('/active', getActiveAnnouncement);
+router.get('/active', publicAnnouncementLimiter, getActiveAnnouncement);
 
 // Admin routes
 router.get('/', adminAnnouncementLimiter, protect, authorize('admin'), getAnnouncements);
