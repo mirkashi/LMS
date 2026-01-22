@@ -102,11 +102,14 @@ async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
       safeSubfolder = 'courses';
     }
 
+    // Resolve the uploads root and subfolder, and ensure the final directory
+    // is strictly within the uploads root to prevent directory traversal.
     const uploadsRoot = path.resolve(__dirname, '../uploads');
-    const uploadsDir = path.resolve(uploadsRoot, safeSubfolder);
+    const uploadsDir = path.resolve(path.join(uploadsRoot, safeSubfolder));
 
     // Ensure the resolved uploadsDir is within the uploadsRoot directory
-    if (uploadsDir !== uploadsRoot && !uploadsDir.startsWith(uploadsRoot + path.sep)) {
+    const uploadsRootWithSep = uploadsRoot.endsWith(path.sep) ? uploadsRoot : uploadsRoot + path.sep;
+    if (!uploadsDir.startsWith(uploadsRootWithSep)) {
       throw new Error('Invalid upload directory resolved when saving file locally');
     }
     
