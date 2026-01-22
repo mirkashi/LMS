@@ -77,6 +77,18 @@ const setPasswordLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for admin login attempts
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 admin login attempts per 15 minutes per IP
+  message: {
+    success: false,
+    message: 'Too many admin login attempts. Please try again after 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post('/register', registrationLimiter, authController.register);
 router.post('/verify-email', authController.verifyEmail);
 router.get('/verify-email', authController.verifyEmail);
@@ -84,7 +96,7 @@ router.post('/verify-code', verificationLimiter, authController.verifyEmailCode)
 router.post('/resend-code', resendLimiter, authController.resendVerificationCode);
 router.post('/set-password', setPasswordLimiter, authController.setPassword);
 router.post('/login', authController.login);
-router.post('/admin-login', authController.adminLogin);
+router.post('/admin-login', adminLoginLimiter, authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
 router.post('/reset-password', resetPasswordLimiter, authController.resetPassword);
 
