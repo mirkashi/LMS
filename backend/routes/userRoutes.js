@@ -4,6 +4,13 @@ const User = require('../models/User');
 const { authMiddleware } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter for wishlist operations to prevent abuse
+const wishlistLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 wishlist requests per window
+});
 
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
@@ -134,7 +141,7 @@ const optionalAuth = (req, res, next) => {
 };
 
 // Get Wishlist
-router.get('/wishlist', optionalAuth, async (req, res) => {
+router.get('/wishlist', optionalAuth, wishlistLimiter, async (req, res) => {
   try {
     // If user is not authenticated, return empty wishlist
     if (!req.user) {
@@ -148,7 +155,7 @@ router.get('/wishlist', optionalAuth, async (req, res) => {
 });
 
 // Add to Wishlist
-router.post('/wishlist/:productId', authMiddleware, async (req, res) => {
+router.post('/wishlist/:productId', authMiddleware, wishlistLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     if (!user.wishlist.includes(req.params.productId)) {
@@ -162,7 +169,7 @@ router.post('/wishlist/:productId', authMiddleware, async (req, res) => {
 });
 
 // Remove from Wishlist
-router.delete('/wishlist/:productId', authMiddleware, async (req, res) => {
+router.delete('/wishlist/:productId', authMiddleware, wishlistLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     user.wishlist = user.wishlist.filter(id => id.toString() !== req.params.productId);
