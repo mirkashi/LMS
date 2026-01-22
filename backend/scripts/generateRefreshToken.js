@@ -12,10 +12,19 @@
 const { google } = require('googleapis');
 const readline = require('readline');
 
+// Load environment variables
+require('dotenv').config();
+
 // Your OAuth2 credentials from .env file
-const CLIENT_ID = '880436395510-qp96q8vjgumps5h3piinf74o6p6eq09k.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
-const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob';
+
+// Validate required environment variables
+if (!CLIENT_ID || !CLIENT_SECRET) {
+  console.error('❌ Error: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env file');
+  process.exit(1);
+}
 
 const oauth2Client = new google.auth.OAuth2(
   CLIENT_ID,
