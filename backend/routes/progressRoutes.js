@@ -11,13 +11,22 @@ const adminProgressStatsLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const userProgressLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each authenticated user client to 100 requests per windowMs for progress endpoints
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Get user's enrollment progress
 router.get(
   '/enrollments/:enrollmentId/progress',
   authMiddleware,
+  userProgressLimiter,
   progressController.getProgress
 );
 
+  userProgressLimiter,
 // Update lesson progress
 router.put(
   '/enrollments/:enrollmentId/progress',
