@@ -22,6 +22,6 @@ router.get(
 );
 
 // Get video validation status
-router.post('/validate-video', courseAuditController.getVideoValidationStatus);
+router.post('/validate-video', courseAuditRateLimiter, courseAuditController.getVideoValidationStatus);
 
 module.exports = router;
