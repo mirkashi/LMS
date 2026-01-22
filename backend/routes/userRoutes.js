@@ -12,6 +12,12 @@ const wishlistLimiter = rateLimit({
   max: 30, // limit each IP to 30 wishlist requests per window
 });
 
+// Rate limiter for cart operations to prevent abuse
+const cartLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 cart requests per window
+});
+
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
@@ -183,7 +189,7 @@ router.delete('/wishlist/:productId', authMiddleware, wishlistLimiter, async (re
 // --- Cart Routes ---
 
 // Get Cart
-router.get('/cart', authMiddleware, async (req, res) => {
+router.get('/cart', authMiddleware, cartLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).populate('cart.product');
     res.json({ success: true, data: user.cart });
