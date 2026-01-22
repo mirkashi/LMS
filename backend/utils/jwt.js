@@ -49,7 +49,6 @@ const verifyToken = (token) => {
         name: error.name,
         message: error.message,
         tokenLength: token?.length || 0,
-        secretLength: JWT_SECRET.length,
       });
     } else {
       console.error('❌ Token verification failed:', error.message);
