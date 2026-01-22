@@ -1,5 +1,6 @@
 const VideoProgress = require('../models/VideoProgress');
 const Course = require('../models/Course');
+const mongoose = require('mongoose');
 
 // Record or update video progress
 exports.updateVideoProgress = async (req, res) => {
@@ -12,6 +13,14 @@ exports.updateVideoProgress = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Course ID and video link are required',
+      });
+    }
+
+    // Validate courseId format to prevent NoSQL injection
+    if (typeof courseId !== 'string' || !mongoose.isValidObjectId(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid course ID',
       });
     }
 
@@ -30,7 +39,7 @@ exports.updateVideoProgress = async (req, res) => {
     // Find existing progress
     let progress = await VideoProgress.findOne({
       user: userId,
-      course: courseId,
+      course: { $eq: courseId },
       videoLink,
     });
 
