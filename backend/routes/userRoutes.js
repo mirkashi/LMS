@@ -225,7 +225,7 @@ const optionalAuth = (req, res, next) => {
 };
 
 // Get Wishlist
-router.get('/wishlist', optionalAuth, wishlistLimiter, async (req, res) => {
+router.get('/wishlist', wishlistLimiter, optionalAuth, async (req, res) => {
   try {
     // If user is not authenticated, return empty wishlist
     if (!req.user) {
