@@ -4,6 +4,14 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const ProductReview = require('../models/ProductReview');
 const { authMiddleware } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+const reviewRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 review submissions per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Get all available products (public)
 router.get('/', async (req, res) => {
@@ -81,7 +89,7 @@ router.get('/:id/reviews', async (req, res) => {
 });
 
 // Create or update a review for a product
-router.post('/:id/reviews', authMiddleware, async (req, res) => {
+router.post('/:id/reviews', reviewRateLimiter, authMiddleware, async (req, res) => {
   try {
     const { rating, comment } = req.body;
 
