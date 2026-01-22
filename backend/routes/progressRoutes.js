@@ -21,24 +21,24 @@ const userProgressLimiter = rateLimit({
 // Get user's enrollment progress
 router.get(
   '/enrollments/:enrollmentId/progress',
-  authMiddleware,
   userProgressLimiter,
+  authMiddleware,
   progressController.getProgress
 );
 
 // Update lesson progress
 router.put(
   '/enrollments/:enrollmentId/progress',
-  authMiddleware,
   userProgressLimiter,
+  authMiddleware,
   progressController.updateLessonProgress
 );
 
 // Admin: Get enrollment progress stats
 router.get(
   '/admin/enrollments/:enrollmentId/progress',
-  authMiddleware,
   adminProgressStatsLimiter,
+  authMiddleware,
   adminMiddleware,
   progressController.getEnrollmentProgressStats
 );
