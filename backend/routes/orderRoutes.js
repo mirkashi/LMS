@@ -9,7 +9,12 @@ const myOrdersLimiter = rateLimit({
   max: 100, // limit each IP/user to 100 requests per windowMs for /myorders
 });
 
-router.route('/').post(protect, createOrder);
+const createOrderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP/user to 100 requests per windowMs for create order
+});
+
+router.route('/').post(protect, createOrderLimiter, createOrder);
 router.route('/myorders').get(protect, myOrdersLimiter, getMyOrders);
 
 module.exports = router;
