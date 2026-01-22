@@ -32,50 +32,102 @@ export default function VideoPlayer({
   // Normalize video URL for local/Drive videos
   const normalizeVideoUrl = (url: string): string => {
     if (!url) return url;
-    
-    // If it's a Google Drive URL, convert to stream URL
-    if (url.includes('drive.google.com') || url.includes('googleusercontent.com')) {
-      const match = url.match(/id=([^&]+)/) || url.match(/file\/d\/([^/]+)/);
-      const fileId = match?.[1];
-      if (fileId) {
-        return `${process.env.NEXT_PUBLIC_API_URL}/media/drive/${fileId}/stream`;
-      }
-    }
-    
-    // For local uploads, use getAssetUrl
+
+    // For local uploads, use getAssetUrl (non-HTTP(S) URLs)
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return getAssetUrl(url) || url;
     }
-    
+
+    // If it's a Google Drive or Google-hosted URL, convert to stream URL
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname;
+
+      if (hostname.endsWith('drive.google.com') || hostname.endsWith('googleusercontent.com')) {
+        // Try to get file ID from query (`id` param) or from `/file/d/<id>/...` path
+        const searchParams = parsed.searchParams;
+        let fileId = searchParams.get('id') || undefined;
+
+        if (!fileId) {
+          const fileMatch = parsed.pathname.match(/\/file\/d\/([^/]+)/);
+          if (fileMatch) {
+            fileId = fileMatch[1];
+          }
+        }
+
+        if (fileId) {
+          return `${process.env.NEXT_PUBLIC_API_URL}/media/drive/${fileId}/stream`;
+        }
+      }
+    } catch {
+      // If URL parsing fails, fall back to returning the original URL
+      return url;
+    }
+
     return url;
   };
 
   const normalizedVideoLink = normalizeVideoUrl(videoLink);
 
+      const parsed = new URL(url);
+      const hostname = parsed.hostname;
+      const pathname = parsed.pathname || '';
+
   // Helper function to extract video ID and convert to embed URL
   const getEmbedUrl = (url: string) => {
     try {
       // YouTube
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const videoId = url.includes('youtu.be')
-          ? url.split('youtu.be/')[1]?.split('?')[0]
-          : new URLSearchParams(new URL(url).search).get('v');
-        return {
-          type: 'youtube',
-          url: `https://www.youtube.com/embed/${videoId}?enablejsapi=1`,
-        };
+      const isYouTubeHost =
+        hostname === 'youtube.com' ||
+        hostname === 'www.youtube.com' ||
+        hostname === 'm.youtube.com';
+      const isYouTuBeShort = hostname === 'youtu.be';
+
+      if (isYouTubeHost || isYouTuBeShort) {
+        let videoId: string | null = null;
+
+        if (isYouTuBeShort) {
+          // Short URL format: https://youtu.be/<id>[?query]
+          const pathParts = pathname.split('/').filter(Boolean);
+          videoId = pathParts[0] || null;
+        } else {
+          // Standard YouTube URL: use `v` query param
+          videoId = parsed.searchParams.get('v');
+        }
+
+        if (videoId) {
+          return {
+            type: 'youtube',
+            url: `https://www.youtube.com/embed/${videoId}?enablejsapi=1`,
+          };
+        }
+
       }
       // Vimeo
-      if (url.includes('vimeo.com')) {
-        const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-        return {
-          type: 'vimeo',
-          url: `https://player.vimeo.com/video/${videoId}`,
-        };
+      if (hostname === 'vimeo.com' || hostname.endsWith('.vimeo.com')) {
+        // Common Vimeo format: https://vimeo.com/<id>[?query]
+        const pathParts = pathname.split('/').filter(Boolean);
+        const videoId = pathParts[0];
+        if (videoId) {
+          return {
+            type: 'vimeo',
+            url: `https://player.vimeo.com/video/${videoId}`,
+          };
+        }
+
       }
       // Check if it's a direct video file (mp4, webm, ogg) or Google Drive stream
-      if (url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || 
-          url.includes('/media/drive/') || url.includes('googleusercontent.com')) {
+      const lowerPath = pathname.toLowerCase();
+      const isDirectFile =
+        lowerPath.endsWith('.mp4') ||
+        lowerPath.endsWith('.webm') ||
+        lowerPath.endsWith('.ogg');
+      const isDriveStream =
+        pathname.includes('/media/drive/') ||
+        hostname.endsWith('googleusercontent.com');
+
+      if (isDirectFile || isDriveStream) {
+
         return { type: 'direct', url };
       }
       // Default
