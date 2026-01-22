@@ -89,7 +89,7 @@ PORT=5000
 NODE_ENV=production
 
 # MongoDB
-MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.mongodb.net/9tangle
+MONGODB_URI=mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/9tangle
 
 # PostgreSQL
 DB_NAME=9tangle
@@ -188,7 +188,7 @@ jobs:
 
 ```bash
 # MongoDB backup
-mongodump --uri "mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.mongodb.net/9tangle"
+mongodump --uri "mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/9tangle"
 
 # PostgreSQL backup
 pg_dump -h host -U user -d 9tangle > backup.sql
