@@ -61,9 +61,28 @@ exports.createAnnouncement = async (req, res) => {
 // Update announcement (Admin)
 exports.updateAnnouncement = async (req, res) => {
   try {
+    // Only allow specific fields to be updated to avoid NoSQL injection via req.body
+    const allowedFields = [
+      'title',
+      'message',
+      'content',
+      'type',
+      'isActive',
+      'visibility',
+      'audience',
+      'startDate',
+      'endDate'
+    ];
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updateData[field] = req.body[field];
+      }
+    }
+
     const announcement = await Announcement.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
