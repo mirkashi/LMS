@@ -102,9 +102,21 @@ exports.getRejectedPayments = async (req, res) => {
   try {
     const { reason, limit = 50, page = 1 } = req.query;
 
+    // Ensure reason is treated as a simple string to avoid NoSQL injection
+    let reasonStr;
+    if (typeof reason !== 'undefined') {
+      if (typeof reason !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reason parameter',
+        });
+      }
+      reasonStr = reason.trim();
+    }
+
     let filter = { status: 'rejected' };
-    if (reason) {
-      filter.rejectionReason = reason;
+    if (reasonStr) {
+      filter.rejectionReason = reasonStr;
     }
 
     const payments = await PaymentStatusTracking.find(filter)
