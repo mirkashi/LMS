@@ -149,8 +149,9 @@ exports.getAllVideoProgress = async (req, res) => {
     }
 
     let query = {};
-    if (courseId) {
-      query.course = courseId;
+    if (typeof courseId === 'string' && courseId.length > 0) {
+      // Use $eq to ensure courseId is treated as a literal value
+      query.course = { $eq: courseId };
     }
 
     const progress = await VideoProgress.find(query)
