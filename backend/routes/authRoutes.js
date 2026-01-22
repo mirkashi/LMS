@@ -41,13 +41,25 @@ const resendLimiter = rateLimit({
 });
 
 
-// Rate limiter for password reset requests
+// Rate limiter for password reset requests (requesting a reset link)
 const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // Max 3 password reset requests per hour
   message: {
     success: false,
     message: 'Too many password reset requests. Please try again after an hour.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for actual password reset submissions
+const resetPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Max 5 password reset attempts per hour per IP
+  message: {
+    success: false,
+    message: 'Too many password reset attempts. Please try again after an hour.',
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -62,7 +74,7 @@ router.post('/set-password', authController.setPassword);
 router.post('/login', authController.login);
 router.post('/admin-login', authController.adminLogin);
 router.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password', resetPasswordLimiter, authController.resetPassword);
 
 // Token validation endpoint for debugging
 router.get('/validate-token', authMiddleware, (req, res) => {
