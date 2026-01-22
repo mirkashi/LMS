@@ -284,7 +284,7 @@ PORT=5001 npm run dev
 mongosh
 
 # Or update connection string in .env
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/9tangle
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.mongodb.net/9tangle
 ```
 
 ### CORS Error
@@ -360,7 +360,7 @@ EMAIL_USER=dev@gmail.com
 ```env
 PORT=5000
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://prod_user:prod_pass@cluster.mongodb.net/9tangle
+MONGODB_URI=mongodb+srv://YOUR_PROD_USERNAME:YOUR_PROD_PASSWORD@your-cluster.mongodb.net/9tangle
 JWT_SECRET=very_long_secure_production_key
 EMAIL_USER=noreply@9tangle.com
 ```
