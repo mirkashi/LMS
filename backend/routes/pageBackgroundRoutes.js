@@ -21,7 +21,6 @@ router.post(
   uploadMiddleware.single('image'),
   pageBackgroundController.uploadPageBackground
 );
-  adminBackgroundLimiter,
 
 // Get all page backgrounds (admin only)
 router.get(
@@ -32,8 +31,11 @@ router.get(
 );
 
 // Get background image for a specific page (public route) - Must be last
-router.get('/:pageName', pageBackgroundController.getPageBackground);
+router.get(
+  '/:pageName',
   adminBackgroundLimiter,
+  pageBackgroundController.getPageBackground
+);
 
 // Delete page background (admin only)
 router.delete(
