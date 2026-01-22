@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // Ensure JWT_SECRET is loaded from environment
 let JWT_SECRET = process.env.JWT_SECRET || '46496b47f8fa05837a4b367bac06c32b2d4959f9e3271b23b7fe14f2d0c61311';
@@ -11,8 +12,9 @@ if (!process.env.JWT_SECRET) {
   console.warn('⚠️ WARNING: Using default JWT_SECRET. Set JWT_SECRET in .env file for production!');
 }
 
-// Log JWT_SECRET info for debugging (first 10 chars only for security)
-console.log(`ℹ️ JWT_SECRET loaded: ${JWT_SECRET.substring(0, 10)}... (length: ${JWT_SECRET.length})`);
+// Log non-sensitive JWT_SECRET info for debugging (hash prefix only, no raw secret)
+const jwtSecretHashPrefix = crypto.createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8);
+console.log(`ℹ️ JWT_SECRET configured (hash prefix: ${jwtSecretHashPrefix})`);
 
 const generateToken = (userId, role = 'user') => {
   if (!userId) {
