@@ -218,7 +218,7 @@ async function uploadBufferToDrive({ buffer, name, mimeType, folderId, subfolder
   // If all Google Drive attempts failed, fallback to local storage
   console.warn(`⚠️  Google Drive upload failed after ${retries} attempts. Saving locally as fallback.`);
   console.warn(`Error: ${lastError.message}`);
-  return await saveFileLocally({ buffer, name, subfolder });
+  return await saveFileLocally({ buffer, name, subfolder: safeSubfolder });
 }
 
 // Stream a Drive file through our backend, supporting range requests
