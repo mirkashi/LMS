@@ -10,11 +10,11 @@ const paymentTrackingLimiter = rateLimit({
 });
 
 // User routes
-router.get('/user/status', authMiddleware, paymentTrackingLimiter, paymentTrackingController.getUserPaymentStatus);
-router.post('/:paymentId/retry', authMiddleware, paymentTrackingLimiter, paymentTrackingController.requestPaymentRetry);
+router.get('/user/status', paymentTrackingLimiter, authMiddleware, paymentTrackingController.getUserPaymentStatus);
+router.post('/:paymentId/retry', paymentTrackingLimiter, authMiddleware, paymentTrackingController.requestPaymentRetry);
 
 // Admin routes
-router.get('/admin/rejected', authMiddleware, adminOnly, paymentTrackingLimiter, paymentTrackingController.getRejectedPayments);
-router.get('/admin/statistics', authMiddleware, adminOnly, paymentTrackingLimiter, paymentTrackingController.getPaymentStatistics);
+router.get('/admin/rejected', paymentTrackingLimiter, authMiddleware, adminOnly, paymentTrackingController.getRejectedPayments);
+router.get('/admin/statistics', paymentTrackingLimiter, authMiddleware, adminOnly, paymentTrackingController.getPaymentStatistics);
 
 module.exports = router;
