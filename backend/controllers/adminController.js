@@ -564,6 +564,22 @@ exports.updateProfile = async (req, res) => {
 
     // Handle Email Change Request
     if (email && email !== user.email) {
+      // Basic email validation to ensure email is a safe string value
+      if (typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email format',
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email format',
+        });
+      }
+
       // Rate limiting check (1 minute)
       if (user.lastEmailVerificationSentAt && 
           Date.now() - user.lastEmailVerificationSentAt.getTime() < 60000) {
