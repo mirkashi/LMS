@@ -193,8 +193,31 @@ router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res)
 
 // Serve uploads path helper for absolute URLs
 router.get('/profile/avatar/:file', (req, res) => {
-  const filePath = path.join(__dirname, '..', 'uploads', req.params.file);
-  res.sendFile(filePath);
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  const requestedPath = path.resolve(uploadsDir, req.params.file);
+
+  // Ensure the resolved path is within the uploads directory to prevent path traversal
+  if (!requestedPath.startsWith(uploadsDir + path.sep)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid file path',
+    });
+  }
+
+  res.sendFile(requestedPath, (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({
+          success: false,
+          message: 'File not found',
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to serve file',
+      });
+    }
+  });
 });
 
 // --- Wishlist Routes ---
