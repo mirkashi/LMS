@@ -38,12 +38,32 @@ export default function VideoPlayer({
       return getAssetUrl(url) || url;
     }
 
+    // Helper to strictly validate Google Drive / Google-hosted hostnames.
+    const isAllowedGoogleHost = (hostname: string): boolean => {
+      const allowedExactHosts = ['drive.google.com'];
+
+      if (allowedExactHosts.includes(hostname)) {
+        return true;
+      }
+
+      // Allow googleusercontent.com and its subdomains, but prevent
+      // hosts like "evil-googleusercontent.com".
+      if (
+        hostname === 'googleusercontent.com' ||
+        hostname.endsWith('.googleusercontent.com')
+      ) {
+        return true;
+      }
+
+      return false;
+    };
+
     // If it's a Google Drive or Google-hosted URL, convert to stream URL
     try {
       const parsed = new URL(url);
       const hostname = parsed.hostname;
 
-      if (hostname.endsWith('drive.google.com') || hostname.endsWith('googleusercontent.com')) {
+      if (isAllowedGoogleHost(hostname)) {
         // Try to get file ID from query (`id` param) or from `/file/d/<id>/...` path
         const searchParams = parsed.searchParams;
         let fileId = searchParams.get('id') || undefined;
