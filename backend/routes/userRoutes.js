@@ -12,6 +12,12 @@ const wishlistLimiter = rateLimit({
   max: 30, // limit each IP to 30 wishlist requests per window
 });
 
+// Rate limiter for serving avatar files to prevent abuse of filesystem access
+const avatarLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // limit each IP to 60 avatar requests per window
+});
+
 // Rate limiter for cart operations to prevent abuse
 const cartLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
@@ -192,7 +198,7 @@ router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res)
 });
 
 // Serve uploads path helper for absolute URLs
-router.get('/profile/avatar/:file', (req, res) => {
+router.get('/profile/avatar/:file', avatarLimiter, (req, res) => {
   const uploadsDir = path.join(__dirname, '..', 'uploads');
   const requestedPath = path.resolve(uploadsDir, req.params.file);
 
