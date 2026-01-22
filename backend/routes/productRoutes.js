@@ -13,6 +13,13 @@ const reviewRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const productDetailRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 product detail requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Get all available products (public)
 router.get('/', async (req, res) => {
   try {
@@ -35,7 +42,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get product by ID (public)
-router.get('/:id', async (req, res) => {
+router.get('/:id', productDetailRateLimiter, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate('createdBy', 'name email');
 
