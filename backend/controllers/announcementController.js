@@ -76,7 +76,22 @@ exports.updateAnnouncement = async (req, res) => {
     const updateData = {};
     for (const field of allowedFields) {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        updateData[field] = req.body[field];
+        const value = req.body[field];
+
+        // Basic safeguard against NoSQL injection via operator objects in values
+        if (value && typeof value === 'object') {
+          // Disallow any nested keys starting with '$' which might be interpreted as operators
+          const keys = Array.isArray(value) ? [] : Object.keys(value);
+          const hasOperatorKey = keys.some((k) => typeof k === 'string' && k.startsWith('$'));
+          if (hasOperatorKey) {
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid update payload'
+            });
+          }
+        }
+
+        updateData[field] = value;
       }
     }
 
