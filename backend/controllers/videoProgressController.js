@@ -24,6 +24,14 @@ exports.updateVideoProgress = async (req, res) => {
       });
     }
 
+    // Validate videoLink to prevent NoSQL injection
+    if (typeof videoLink !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid video link',
+      });
+    }
+
     // Verify course exists
     const course = await Course.findById(courseId);
     if (!course) {
@@ -40,7 +48,7 @@ exports.updateVideoProgress = async (req, res) => {
     let progress = await VideoProgress.findOne({
       user: userId,
       course: { $eq: courseId },
-      videoLink,
+      videoLink: { $eq: videoLink },
     });
 
     if (progress) {
