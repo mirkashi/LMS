@@ -115,7 +115,23 @@ async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
     
-    const filename = `${Date.now()}-${name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    // Derive a safe filename from the provided name
+    const originalName = typeof name === 'string' && name.length > 0 ? name : 'file';
+    // Drop any directory components that may have slipped in
+    const baseName = path.basename(originalName);
+    // Allow only a limited safe character set in the stored filename
+    const safeBaseName = baseName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    // Ensure we still have something usable
+    const finalBaseName = safeBaseName && safeBaseName !== '.' && safeBaseName !== '..'
+      ? safeBaseName
+      : 'file';
+    const filename = `${Date.now()}-${finalBaseName}`;
+
+    // Final safety check: filename must not contain path separators
+    if (filename.includes('/') || filename.includes('\\')) {
+      throw new Error('Invalid filename resolved when saving file locally');
+    }
+
     const filepath = path.join(uploadsDir, filename);
     
     fs.writeFileSync(filepath, buffer);
