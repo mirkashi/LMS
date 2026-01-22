@@ -24,21 +24,71 @@ interface VideoDisplayProps {
 const getEmbedUrl = (url: string) => {
   if (!url) return null;
 
-  // YouTube
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    const videoId = url.includes('youtu.be')
-      ? url.split('youtu.be/')[1]?.split('?')[0]
-      : new URLSearchParams(new URL(url).search).get('v');
-    return `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&controls=1`;
+  let parsedUrl: URL | null = null;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    // If URL parsing fails (e.g., relative URLs), fall back to basic checks below.
   }
 
-  // Vimeo
-  if (url.includes('vimeo.com')) {
-    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-    return `https://player.vimeo.com/video/${videoId}`;
+  if (parsedUrl) {
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // YouTube (watch URLs and youtu.be short URLs)
+   if (
+      hostname === 'www.youtube.com' ||
+      hostname === 'youtube.com' ||
+      hostname === 'm.youtube.com' ||
+      hostname === 'youtu.be'
+    ) {
+      let videoId: string | null = null;
+
+      if (hostname === 'youtu.be') {
+        // Short URL format: https://youtu.be/{id}
+        videoId = parsedUrl.pathname.split('/')[1] || null;
+      } else {
+        // Standard watch URL format: https://www.youtube.com/watch?v={id}
+        videoId = parsedUrl.searchParams.get('v');
+      }
+
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&controls=1`;
+      }
+    }
+
+    // Vimeo
+    if (hostname === 'vimeo.com' || hostname.endsWith('.vimeo.com')) {
+      // Typical format: https://vimeo.com/{id}
+      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+      const videoId = pathParts[0];
+
+      if (videoId) {
+        return `https://player.vimeo.com/video/${videoId}`;
+      }
+    }
+  } else {
+    // Fallback for non-absolute URLs where URL parsing failed
+    // YouTube
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const videoId = url.includes('youtu.be')
+        ? url.split('youtu.be/')[1]?.split('?')[0]
+        : new URLSearchParams(url.split('?')[1] || '').get('v');
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&controls=1`;
+      }
+    }
+
+    // Vimeo
+    if (url.includes('vimeo.com')) {
+      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+      if (videoId) {
+        return `https://player.vimeo.com/video/${videoId}`;
+      }
+    }
   }
 
-  // Direct video link (MP4, WebM, OGG)
+  // Direct video link (MP4, WebM, OGG) or any other URL
   return url;
 };
 
