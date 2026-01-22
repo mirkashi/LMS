@@ -20,9 +20,9 @@ const adminAnnouncementLimiter = rateLimit({
 router.get('/active', getActiveAnnouncement);
 
 // Admin routes
-router.get('/', protect, authorize('admin'), adminAnnouncementLimiter, getAnnouncements);
-router.post('/', protect, authorize('admin'), adminAnnouncementLimiter, createAnnouncement);
-router.put('/:id', protect, authorize('admin'), adminAnnouncementLimiter, updateAnnouncement);
-router.delete('/:id', protect, authorize('admin'), adminAnnouncementLimiter, deleteAnnouncement);
+router.get('/', adminAnnouncementLimiter, protect, authorize('admin'), getAnnouncements);
+router.post('/', adminAnnouncementLimiter, protect, authorize('admin'), createAnnouncement);
+router.put('/:id', adminAnnouncementLimiter, protect, authorize('admin'), updateAnnouncement);
+router.delete('/:id', adminAnnouncementLimiter, protect, authorize('admin'), deleteAnnouncement);
 
 module.exports = router;
