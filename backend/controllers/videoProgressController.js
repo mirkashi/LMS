@@ -140,6 +140,14 @@ exports.getAllVideoProgress = async (req, res) => {
   try {
     const { courseId } = req.query;
 
+    // Validate courseId to prevent NoSQL injection via query parameters
+    if (courseId !== undefined && typeof courseId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid courseId parameter',
+      });
+    }
+
     let query = {};
     if (courseId) {
       query.course = courseId;
