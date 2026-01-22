@@ -135,12 +135,19 @@ async function saveFileLocally({ buffer, name, subfolder = 'courses' }) {
 }
 
 async function uploadBufferToDrive({ buffer, name, mimeType, folderId, subfolder = 'courses', retries = 3 }) {
+  // Normalize and validate subfolder to a safe single directory name
+  let safeSubfolder = typeof subfolder === 'string' && subfolder.length > 0 ? subfolder : 'courses';
+  if (!/^[a-zA-Z0-9_-]+$/.test(safeSubfolder)) {
+    console.warn(`Invalid subfolder "${safeSubfolder}" provided to uploadBufferToDrive; falling back to "courses".`);
+    safeSubfolder = 'courses';
+  }
+
   const drive = getDriveClient();
 
   // If Google Drive is not configured, save locally
   if (!drive) {
     console.log(`📁 Saving file locally: ${name}`);
-    return await saveFileLocally({ buffer, name, subfolder });
+    return await saveFileLocally({ buffer, name, subfolder: safeSubfolder });
   }
 
   let lastError;
