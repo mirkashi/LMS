@@ -240,7 +240,14 @@ exports.resendVerificationCode = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    if (typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format',
+      });
+    }
+
+    const user = await User.findOne({ email: { $eq: email } });
 
     if (!user) {
       return res.status(404).json({
