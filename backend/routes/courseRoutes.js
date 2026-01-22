@@ -21,7 +21,12 @@ const courseDetailRateLimiter = RateLimit({
   max: 100, // limit each IP to 100 course detail requests per window
 });
 
-router.get('/', courseController.getAllCourses);
+const courseListRateLimiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 course list requests per window
+});
+
+router.get('/', courseListRateLimiter, courseController.getAllCourses);
 router.get('/:id', courseDetailRateLimiter, optionalAuthMiddleware, courseController.getCourseById);
 router.get('/:courseId/reviews', courseController.getCourseReviews);
 router.post('/:courseId/reviews', reviewRateLimiter, authMiddleware, courseController.postReview);
