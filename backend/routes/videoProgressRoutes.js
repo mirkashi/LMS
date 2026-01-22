@@ -22,37 +22,37 @@ router.post(
   videoProgressController.updateVideoProgress
 );
 
-  videoProgressLimiter,
 // Get progress for a specific course
 router.get(
   '/course/:courseId',
   authMiddleware,
+  videoProgressLimiter,
   videoProgressController.getVideoProgress
 );
 
-  videoProgressLimiter,
 // Get progress for a specific video in a course
 router.get(
   '/course/:courseId/video/:videoLink',
   authMiddleware,
+  videoProgressLimiter,
   videoProgressController.getVideoProgressByLink
 );
 
-  videoProgressLimiter,
 // Get all video progress (admin only)
 router.get(
   '/',
   authMiddleware,
   adminMiddleware,
+  videoProgressLimiter,
   videoProgressController.getAllVideoProgress
 );
 
-  videoProgressLimiter,
 // Get course video statistics (admin only)
 router.get(
   '/statistics/:courseId',
   authMiddleware,
   adminMiddleware,
+  videoProgressLimiter,
   videoProgressController.getCourseVideoStatistics
 );
 
