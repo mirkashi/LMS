@@ -39,6 +39,12 @@ const cartLimiter = rateLimit({
 // Rate limiter for cart operations to prevent abuse
 const cartLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 cart requests per window
+});
+
+// Rate limiter for cart operations to prevent abuse
+const cartLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
   max: 60, // limit each IP to 60 cart requests per window
 });
 
