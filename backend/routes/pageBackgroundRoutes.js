@@ -25,6 +25,7 @@ router.post(
 // Get all page backgrounds (admin only)
 router.get(
   '/',
+  adminBackgroundLimiter,
   authMiddleware,
   adminMiddleware,
   pageBackgroundController.getAllPageBackgrounds
