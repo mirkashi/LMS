@@ -69,22 +69,44 @@ const getEmbedUrl = (url: string) => {
     }
   } else {
     // Fallback for non-absolute URLs where URL parsing failed
-    // YouTube
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const videoId = url.includes('youtu.be')
-        ? url.split('youtu.be/')[1]?.split('?')[0]
-        : new URLSearchParams(url.split('?')[1] || '').get('v');
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&controls=1`;
+    // YouTube - handle common relative forms without relying on substring host checks.
+
+    let videoId: string | null = null;
+
+    // 1) Relative "watch" path, e.g. "/watch?v=ID" or "watch?v=ID"
+    const watchMatch = url.match(/^\/?watch(\?|$)(.*)/i);
+    if (watchMatch) {
+      const queryPart = watchMatch[2] || (url.includes('?') ? url.split('?')[1] : '');
+      if (queryPart) {
+        const params = new URLSearchParams(queryPart.startsWith('?') ? queryPart.slice(1) : queryPart);
+        videoId = params.get('v');
       }
+    }
+
+    // 2) Short youtu.be-style relative path, e.g. "/youtu.be/ID" or "youtu.be/ID"
+    if (!videoId) {
+      const shortMatch = url.match(/^\/?youtu\.be\/([^?&#/]+)/i);
+      if (shortMatch && shortMatch[1]) {
+        videoId = shortMatch[1];
+      }
+    }
+
+    // 3) Bare query string containing v=ID, e.g. "v=ID&x=y"
+    if (!videoId && !url.includes('/') && (url.includes('v=') || url.startsWith('v='))) {
+      const params = new URLSearchParams(url.includes('?') ? url.split('?')[1] : url);
+      videoId = params.get('v');
+    }
+
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&controls=1`;
     }
 
     // Vimeo - only treat as Vimeo if the string is a simple Vimeo path,
     // not just any URL containing "vimeo.com" as a substring.
     const vimeoPathMatch = url.match(/^\/?vimeo\.com\/([^?&#/]+)/i);
     if (vimeoPathMatch && vimeoPathMatch[1]) {
-      const videoId = vimeoPathMatch[1];
-      return `https://player.vimeo.com/video/${videoId}`;
+      const videoIdVimeo = vimeoPathMatch[1];
+      return `https://player.vimeo.com/video/${videoIdVimeo}`;
     }
   }
 
