@@ -20,13 +20,13 @@ exports.getAllCourses = async (req, res) => {
     let filter = {};
 
     // Filter by category
-    if (category && category !== 'all') {
-      filter.category = category;
+    if (typeof category === 'string' && category.trim() && category !== 'all') {
+      filter.category = category.trim();
     }
 
     // Filter by level
-    if (level && level !== 'all') {
-      filter.level = level;
+    if (typeof level === 'string' && level.trim() && level !== 'all') {
+      filter.level = level.trim();
     }
 
     // Filter by publish status
