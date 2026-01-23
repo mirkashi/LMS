@@ -76,11 +76,10 @@ exports.updateAnnouncement = async (req, res) => {
     const updateData = {};
     for (const field of allowedFields) {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        const value = req.body[field];
+        let value = req.body[field];
 
-        // Basic safeguard against NoSQL injection via operator objects in values
+        // Reject any direct use of operator-style objects
         if (value && typeof value === 'object') {
-          // Disallow any nested keys starting with '$' which might be interpreted as operators
           const keys = Array.isArray(value) ? [] : Object.keys(value);
           const hasOperatorKey = keys.some((k) => typeof k === 'string' && k.startsWith('$'));
           if (hasOperatorKey) {
@@ -89,6 +88,67 @@ exports.updateAnnouncement = async (req, res) => {
               message: 'Invalid update payload'
             });
           }
+        // Normalize and validate per field to ensure only literal values are used
+        switch (field) {
+          case 'title':
+          case 'message':
+          case 'content':
+          case 'type':
+          case 'visibility':
+          case 'audience':
+            if (value != null && typeof value !== 'string') {
+              // Coerce simple primitives to string, reject complex types
+              if (typeof value === 'number' || typeof value === 'boolean') {
+                value = String(value);
+              } else {
+                return res.status(400).json({
+                  success: false,
+                  message: 'Invalid value for ' + field
+                });
+              }
+            }
+            break;
+          case 'isActive':
+            if (typeof value === 'string') {
+              if (value.toLowerCase() === 'true') {
+                value = true;
+              } else if (value.toLowerCase() === 'false') {
+                value = false;
+              }
+            }
+            if (typeof value !== 'boolean') {
+              return res.status(400).json({
+                success: false,
+                message: 'Invalid value for isActive'
+              });
+            }
+            break;
+          case 'startDate':
+          case 'endDate':
+            if (value != null) {
+              // Accept strings or Date-like input and convert to Date
+              const date = new Date(value);
+              if (Number.isNaN(date.getTime())) {
+                return res.status(400).json({
+                  success: false,
+                  message: 'Invalid value for ' + field
+                });
+              }
+              value = date;
+            }
+            break;
+          default:
+            break;
+        }
+
+        // Final safeguard: do not allow objects/arrays as update values
+        if (value && typeof value === 'object') {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid update payload'
+          });
+        }
+
         }
 
         updateData[field] = value;
