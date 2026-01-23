@@ -31,7 +31,7 @@ const profileLimiter = rateLimit({
 });
 
 // Get user profile
-router.get('/profile', authMiddleware, profileLimiter, async (req, res) => {
+router.get('/profile', profileLimiter, authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).populate('enrolledCourses');
 
