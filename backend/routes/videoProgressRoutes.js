@@ -59,8 +59,8 @@ router.get(
 // Delete video progress (admin only)
 router.delete(
   '/:progressId',
-  authMiddleware,
   deleteVideoProgressLimiter,
+  authMiddleware,
   adminMiddleware,
   videoProgressController.deleteVideoProgress
 );
