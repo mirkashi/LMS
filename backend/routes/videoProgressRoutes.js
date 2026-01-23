@@ -41,17 +41,17 @@ router.get(
 // Get all video progress (admin only)
 router.get(
   '/',
+  videoProgressLimiter,
   authMiddleware,
   adminMiddleware,
-  videoProgressLimiter,
   videoProgressController.getAllVideoProgress
 );
 
 // Get course video statistics (admin only)
 router.get(
   '/statistics/:courseId',
-  authMiddleware,
   videoProgressLimiter,
+  authMiddleware,
   adminMiddleware,
   videoProgressController.getCourseVideoStatistics
 );
