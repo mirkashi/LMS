@@ -76,18 +76,23 @@ exports.updateAnnouncement = async (req, res) => {
     const updateData = {};
     for (const field of allowedFields) {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        let value = req.body[field];
+        const rawValue = req.body[field];
+        let value = rawValue;
 
-        // Reject any direct use of operator-style objects
-        if (value && typeof value === 'object') {
+        // Reject any direct use of operator-style objects from the request body
+        if (value !== null && typeof value === 'object') {
           const keys = Array.isArray(value) ? [] : Object.keys(value);
-          const hasOperatorKey = keys.some((k) => typeof k === 'string' && k.startsWith('$'));
+          const hasOperatorKey = keys.some(
+            (k) => typeof k === 'string' && k.startsWith('$')
+          );
           if (hasOperatorKey) {
             return res.status(400).json({
               success: false,
               message: 'Invalid update payload'
             });
           }
+        }
+
         // Normalize and validate per field to ensure only literal values are used
         switch (field) {
           case 'title':
@@ -142,13 +147,11 @@ exports.updateAnnouncement = async (req, res) => {
         }
 
         // Final safeguard: do not allow objects/arrays as update values
-        if (value && typeof value === 'object') {
+        if (value !== null && typeof value === 'object') {
           return res.status(400).json({
             success: false,
             message: 'Invalid update payload'
           });
-        }
-
         }
 
         updateData[field] = value;
