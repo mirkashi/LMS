@@ -25,8 +25,8 @@ router.post(
 // Get progress for a specific course
 router.get(
   '/course/:courseId',
-  authMiddleware,
   videoProgressLimiter,
+  authMiddleware,
   videoProgressController.getVideoProgress
 );
 
