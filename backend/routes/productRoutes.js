@@ -20,8 +20,15 @@ const productDetailRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const productListRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 product list requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Get all available products (public)
-router.get('/', async (req, res) => {
+router.get('/', productListRateLimiter, async (req, res) => {
   try {
     const products = await Product.find({ isAvailable: true })
       .populate('createdBy', 'name email')
