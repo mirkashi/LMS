@@ -24,13 +24,11 @@ const avatarLimiter = rateLimit({
   max: 60, // limit each IP to 60 avatar requests per window
 });
 
-// Rate limiter for cart operations to prevent abuse
-const cartLimiter = rateLimit({
+// Rate limiter for profile operations to prevent abuse of database access
+const profileLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // limit each IP to 30 cart requests per window
+  max: 20, // limit each IP to 20 profile update requests per window
 });
-
-// Rate limiter for cart operations to prevent abuse
 
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
@@ -58,7 +56,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 // Update user profile (name, email, phone, bio, avatar, password)
-router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
+router.put('/profile', authMiddleware, profileLimiter, upload.single('avatar'), async (req, res) => {
   try {
     const { name, email, bio, phone, password, confirmPassword } = req.body;
     const userId = req.user.userId;
