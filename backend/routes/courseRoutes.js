@@ -31,6 +31,11 @@ const todayVideoLinkRateLimiter = RateLimit({
   max: 100, // limit each IP to 100 daily video link (today) requests per window
 });
 
+const dailyVideoLinksRateLimiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 daily video links list requests per window
+});
+
 router.get('/', courseListRateLimiter, courseController.getAllCourses);
 router.get('/:id', courseDetailRateLimiter, optionalAuthMiddleware, courseController.getCourseById);
 router.get('/:courseId/reviews', courseController.getCourseReviews);
@@ -45,7 +50,7 @@ router.post(
 router.get('/enrolled/list', authMiddleware, courseController.getUserEnrolledCourses);
 
 // Public access to daily video links for enrolled students
-router.get('/:courseId/daily-video-links', authMiddleware, adminController.getDailyVideoLinks);
+router.get('/:courseId/daily-video-links', dailyVideoLinksRateLimiter, authMiddleware, adminController.getDailyVideoLinks);
 router.get(
   '/:courseId/daily-video-links/today',
   todayVideoLinkRateLimiter,
