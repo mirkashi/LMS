@@ -1272,7 +1272,55 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    const urls = req.files.map((f) => `/uploads/${f.filename}`);
+    // Upload images using Google Drive utility (with local fallback)
+    const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
+    
+    // Create product folder (only if Google Drive is configured)
+    let productFolderId = null;
+    const driveConfigured = isGoogleDriveConfigured();
+    
+    if (driveConfigured) {
+      try {
+        const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (rootFolderId) {
+          productFolderId = await createFolderIfNotExists(`product-${product._id}`, rootFolderId);
+          console.log(`📁 Created Google Drive folder for product: ${product._id}`);
+        }
+      } catch (error) {
+        console.warn('Failed to create product folder on Google Drive:', error.message);
+        console.warn('Will save files locally instead');
+      }
+    }
+
+    const urls = [];
+    for (const file of req.files) {
+      try {
+        const uploaded = await uploadBufferToDrive({
+          buffer: file.buffer,
+          name: `product-image-${Date.now()}-${file.originalname}`,
+          mimeType: file.mimetype,
+          folderId: productFolderId,
+          subfolder: 'products'
+        });
+        
+        // Store the URL based on storage type
+        if (uploaded.storageType === 'local') {
+          urls.push(uploaded.url); // e.g., /uploads/products/file.jpg
+        } else {
+          urls.push(uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+        }
+        
+        console.log(`✅ Product image uploaded successfully (${uploaded.storageType}): ${file.originalname}`);
+      } catch (error) {
+        console.error('Image upload error:', error);
+        return res.status(500).json({
+          success: false,
+          message: `Failed to upload image: ${file.originalname}. Please try again.`,
+          error: error.message,
+        });
+      }
+    }
+
     product.images = urls;
     // Keep legacy field set to the first image for older clients
     product.image = urls[0];
@@ -1374,7 +1422,53 @@ exports.updateProduct = async (req, res) => {
         });
       }
 
-      const urls = req.files.map((f) => `/uploads/${f.filename}`);
+      // Upload images using Google Drive utility (with local fallback)
+      const { uploadBufferToDrive, createFolderIfNotExists, isGoogleDriveConfigured } = require('../utils/googleDrive');
+      
+      // Get or create product folder (only if Google Drive is configured)
+      let productFolderId = null;
+      const driveConfigured = isGoogleDriveConfigured();
+      
+      if (driveConfigured) {
+        try {
+          const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+          if (rootFolderId) {
+            productFolderId = await createFolderIfNotExists(`product-${productId}`, rootFolderId);
+          }
+        } catch (error) {
+          console.warn('Failed to create product folder on Google Drive:', error.message);
+        }
+      }
+
+      const urls = [];
+      for (const file of req.files) {
+        try {
+          const uploaded = await uploadBufferToDrive({
+            buffer: file.buffer,
+            name: `product-image-${Date.now()}-${file.originalname}`,
+            mimeType: file.mimetype,
+            folderId: productFolderId,
+            subfolder: 'products'
+          });
+          
+          // Store the URL based on storage type
+          if (uploaded.storageType === 'local') {
+            urls.push(uploaded.url);
+          } else {
+            urls.push(uploaded.url || uploaded.webContentLink || `https://drive.google.com/uc?id=${uploaded.id}`);
+          }
+          
+          console.log(`✅ Product image updated (${uploaded.storageType}): ${file.originalname}`);
+        } catch (error) {
+          console.error('Image upload error:', error);
+          return res.status(500).json({
+            success: false,
+            message: `Failed to upload image: ${file.originalname}. Please try again.`,
+            error: error.message,
+          });
+        }
+      }
+
       product.images = urls;
       // Keep legacy field set to the first image for older clients
       product.image = urls[0];

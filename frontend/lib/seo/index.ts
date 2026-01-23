@@ -5,5 +5,13 @@
 
 export * from './seoConfig';
 export * from './metadata';
-export * from './schema';
+export {
+  generateOrganizationSchema,
+  generateCourseSchema,
+  generateProductSchema,
+  generateItemListSchema,
+  generateFAQSchema,
+  generateWebsiteSchema,
+  generateReviewSchema,
+} from './schema';
 export * from './components';

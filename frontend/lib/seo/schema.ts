@@ -218,19 +218,3 @@ export function generateReviewSchema(review: any, itemName: string, itemType: 'C
     datePublished: review.createdAt,
   };
 }
-
-/**
- * Generate BreadcrumbList Schema
- */
-export function generateBreadcrumbSchema(breadcrumbs: { name: string; url: string }[]) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: breadcrumbs.map((crumb, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: crumb.name,
-      item: `${SEO_CONFIG.siteUrl}${crumb.url}`,
-    })),
-  };
-}
