@@ -25,8 +25,8 @@ router.post(
 // Get progress for a specific course
 router.get(
   '/course/:courseId',
-  authMiddleware,
   videoProgressLimiter,
+  authMiddleware,
   videoProgressController.getVideoProgress
 );
 
@@ -41,17 +41,17 @@ router.get(
 // Get all video progress (admin only)
 router.get(
   '/',
+  videoProgressLimiter,
   authMiddleware,
   adminMiddleware,
-  videoProgressLimiter,
   videoProgressController.getAllVideoProgress
 );
 
 // Get course video statistics (admin only)
 router.get(
   '/statistics/:courseId',
-  authMiddleware,
   videoProgressLimiter,
+  authMiddleware,
   adminMiddleware,
   videoProgressController.getCourseVideoStatistics
 );
@@ -59,8 +59,8 @@ router.get(
 // Delete video progress (admin only)
 router.delete(
   '/:progressId',
-  authMiddleware,
   deleteVideoProgressLimiter,
+  authMiddleware,
   adminMiddleware,
   videoProgressController.deleteVideoProgress
 );

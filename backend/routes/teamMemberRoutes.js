@@ -26,8 +26,8 @@ router.get('/', teamMemberPublicLimiter, getAllTeamMembers);
 router.get('/:id', teamMemberPublicLimiter, getTeamMemberById);
 
 // Admin routes
-router.post('/', authMiddleware, adminMiddleware, teamMemberAdminLimiter, uploadMiddleware.single('image'), createTeamMember);
-router.put('/:id', authMiddleware, adminMiddleware, teamMemberAdminLimiter, uploadMiddleware.single('image'), updateTeamMember);
-router.delete('/:id', authMiddleware, adminMiddleware, teamMemberAdminLimiter, deleteTeamMember);
+router.post('/', teamMemberAdminLimiter, authMiddleware, adminMiddleware, uploadMiddleware.single('image'), createTeamMember);
+router.put('/:id', teamMemberAdminLimiter, authMiddleware, adminMiddleware, uploadMiddleware.single('image'), updateTeamMember);
+router.delete('/:id', teamMemberAdminLimiter, authMiddleware, adminMiddleware, deleteTeamMember);
 
 module.exports = router;
