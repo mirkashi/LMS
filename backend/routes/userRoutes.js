@@ -71,15 +71,28 @@ router.put('/profile', authMiddleware, profileLimiter, upload.single('avatar'), 
     }
 
     // Email change (ensure uniqueness)
-    if (email && email !== user.email) {
-      const existing = await User.findOne({ email });
+    if (typeof email !== 'undefined' && email !== user.email) {
+      if (typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email format',
+        });
+      }
+      const normalizedEmail = email.trim();
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email cannot be empty',
+        });
+      }
+      const existing = await User.findOne({ email: normalizedEmail });
       if (existing && existing._id.toString() !== userId) {
         return res.status(409).json({
           success: false,
           message: 'Email already in use',
         });
       }
-      user.email = email;
+      user.email = normalizedEmail;
       user.isEmailVerified = false;
     }
 
