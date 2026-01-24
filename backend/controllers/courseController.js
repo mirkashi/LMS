@@ -9,8 +9,18 @@ exports.getAllCourses = async (req, res) => {
     const { category, level, search } = req.query;
     let filter = { isPublished: true };
 
-    if (category && category !== 'all') filter.category = category;
-    if (level && level !== 'all') filter.level = level;
+    // Whitelist allowed category and level values to avoid using arbitrary user input in the query
+    const allowedCategories = ['development', 'design', 'business', 'marketing', 'photography', 'music'];
+    const allowedLevels = ['beginner', 'intermediate', 'advanced', 'all'];
+
+    if (category && category !== 'all' && allowedCategories.includes(category)) {
+      filter.category = category;
+    }
+
+    if (level && level !== 'all' && allowedLevels.includes(level)) {
+      filter.level = level;
+    }
+
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
