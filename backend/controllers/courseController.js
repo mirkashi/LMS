@@ -14,17 +14,20 @@ exports.getAllCourses = async (req, res) => {
     const allowedLevels = ['beginner', 'intermediate', 'advanced', 'all'];
 
     if (category && category !== 'all' && allowedCategories.includes(category)) {
-      filter.category = category;
+      // Use $eq to ensure the value is treated as a literal and not as a query object
+      filter.category = { $eq: category };
     }
 
     if (level && level !== 'all' && allowedLevels.includes(level)) {
-      filter.level = level;
+      // Use $eq to ensure the value is treated as a literal and not as a query object
+      filter.level = { $eq: level };
     }
 
-    if (search) {
+    if (typeof search === 'string' && search.trim().length > 0) {
+      const searchTerm = search.trim();
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { title: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
       ];
     }
 
