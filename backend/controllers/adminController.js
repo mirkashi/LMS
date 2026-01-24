@@ -961,7 +961,19 @@ exports.updateLessonReleaseDate = async (req, res) => {
       });
     }
 
-    if (!course.modules[moduleIndex] || !course.modules[moduleIndex].lessons[lessonIndex]) {
+    const moduleIdx = Number.isInteger(Number(moduleIndex)) ? parseInt(moduleIndex, 10) : NaN;
+    const lessonIdx = Number.isInteger(Number(lessonIndex)) ? parseInt(lessonIndex, 10) : NaN;
+
+    if (
+      Number.isNaN(moduleIdx) ||
+      Number.isNaN(lessonIdx) ||
+      moduleIdx < 0 ||
+      lessonIdx < 0 ||
+      !Array.isArray(course.modules) ||
+      !course.modules[moduleIdx] ||
+      !Array.isArray(course.modules[moduleIdx].lessons) ||
+      !course.modules[moduleIdx].lessons[lessonIdx]
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Lesson not found',
@@ -970,10 +982,10 @@ exports.updateLessonReleaseDate = async (req, res) => {
 
     // Update release date and lock status
     if (releaseDate) {
-      course.modules[moduleIndex].lessons[lessonIndex].releaseDate = new Date(releaseDate);
+      course.modules[moduleIdx].lessons[lessonIdx].releaseDate = new Date(releaseDate);
     }
     if (typeof isLocked !== 'undefined') {
-      course.modules[moduleIndex].lessons[lessonIndex].isLocked = isLocked;
+      course.modules[moduleIdx].lessons[lessonIdx].isLocked = isLocked;
     }
 
     await course.save();
@@ -981,7 +993,7 @@ exports.updateLessonReleaseDate = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Lesson release date updated successfully',
-      data: course.modules[moduleIndex].lessons[lessonIndex],
+      data: course.modules[moduleIdx].lessons[lessonIdx],
     });
   } catch (error) {
     res.status(500).json({
