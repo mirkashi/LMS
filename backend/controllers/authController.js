@@ -7,6 +7,29 @@ const {
   sendPasswordResetEmail 
 } = require('../utils/mailer');
 
+const isLocalRedirect = (req, target) => {
+  if (typeof target !== 'string' || !target) {
+    return false;
+  }
+
+  // Disallow protocol-relative URLs and explicit schemes (http:, https:, javascript:, etc.)
+  if (target.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(target)) {
+    return false;
+  }
+
+  try {
+    const host = req.get && req.get('host');
+    if (!host) {
+      return false;
+    }
+    const baseUrl = `${req.protocol}://${host}`;
+    const resolved = new URL(target, baseUrl);
+    return resolved.origin === baseUrl;
+  } catch (e) {
+    return false;
+  }
+};
+
 const findUserByVerificationToken = async (token) => {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
   return User.findOne({
@@ -100,7 +123,7 @@ exports.verifyEmail = async (req, res) => {
     const user = await findUserByVerificationToken(token);
 
     if (!user) {
-      if (req.query.redirect) {
+      if (req.query.redirect && isLocalRedirect(req, req.query.redirect)) {
         return res.redirect(`${req.query.redirect}?verified=0`);
       }
       return res.status(400).json({
@@ -114,7 +137,7 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    if (req.query.redirect) {
+    if (req.query.redirect && isLocalRedirect(req, req.query.redirect)) {
       return res.redirect(`${req.query.redirect}?verified=1`);
     }
 
