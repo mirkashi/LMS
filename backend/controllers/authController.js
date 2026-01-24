@@ -143,6 +143,15 @@ exports.verifyEmailCode = async (req, res) => {
       });
     }
 
+    // Validate email format and type to prevent NoSQL injection
+    if (typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email.',
+      });
+    }
+    const safeEmail = email.trim().toLowerCase();
+
     // Validate code format (6 digits)
     if (!/^\d{6}$/.test(code)) {
       return res.status(400).json({
@@ -151,7 +160,7 @@ exports.verifyEmailCode = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: safeEmail } });
 
     if (!user) {
       return res.status(404).json({
