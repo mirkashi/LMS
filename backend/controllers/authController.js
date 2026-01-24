@@ -455,6 +455,22 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Ensure token is a string to prevent NoSQL injection via query operators
+    if (typeof token !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset token format',
+      });
+    }
+
+    const trimmedToken = token.trim();
+    if (!trimmedToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset token format',
+      });
+    }
+
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -471,7 +487,7 @@ exports.resetPassword = async (req, res) => {
     }
 
     const user = await User.findOne({
-      passwordResetToken: token,
+      passwordResetToken: { $eq: trimmedToken },
       passwordResetExpires: { $gt: Date.now() },
     });
 
