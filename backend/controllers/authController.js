@@ -327,6 +327,14 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Ensure email and password are strings to prevent injection via objects
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     if (!phone) {
       return res.status(400).json({
         success: false,
@@ -334,7 +342,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    // Optionally ensure phone is also a string
+    if (typeof phone !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format',
+      });
+    }
+
+    const user = await User.findOne({ email: { $eq: email } }).select('+password');
 
     if (!user) {
       return res.status(401).json({
