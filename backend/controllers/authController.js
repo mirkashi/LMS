@@ -9,24 +9,31 @@ const {
 
 const isLocalRedirect = (req, target) => {
   if (typeof target !== 'string' || !target) {
-    return false;
+    return null;
   }
 
   // Disallow protocol-relative URLs and explicit schemes (http:, https:, javascript:, etc.)
   if (target.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(target)) {
-    return false;
+    return null;
   }
 
   try {
     const host = req.get && req.get('host');
     if (!host) {
-      return false;
+      return null;
     }
     const baseUrl = `${req.protocol}://${host}`;
     const resolved = new URL(target, baseUrl);
-    return resolved.origin === baseUrl;
+
+    // Only allow redirects that stay on the same origin
+    if (resolved.origin !== baseUrl) {
+      return null;
+    }
+
+    // Return a normalized, safe path (including query and hash if present)
+    return resolved.pathname + resolved.search + resolved.hash;
   } catch (e) {
-    return false;
+    return null;
   }
 };
 
@@ -123,8 +130,17 @@ exports.verifyEmail = async (req, res) => {
     const user = await findUserByVerificationToken(token);
 
     if (!user) {
-      if (req.query.redirect && isLocalRedirect(req, req.query.redirect)) {
-        return res.redirect(`${req.query.redirect}?verified=0`);
+      if (req.query.redirect) {
+        const safeRedirectPath = isLocalRedirect(req, req.query.redirect);
+        if (safeRedirectPath) {
+          const host = req.get && req.get('host');
+          const baseUrl = `${req.protocol}://${host}`;
+          const redirectUrl = new URL(safeRedirectPath, baseUrl);
+          const params = redirectUrl.searchParams;
+          params.set('verified', '0');
+          redirectUrl.search = params.toString();
+          return res.redirect(redirectUrl.toString());
+        }
       }
       return res.status(400).json({
         success: false,
@@ -137,8 +153,17 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    if (req.query.redirect && isLocalRedirect(req, req.query.redirect)) {
-      return res.redirect(`${req.query.redirect}?verified=1`);
+    if (req.query.redirect) {
+      const safeRedirectPath = isLocalRedirect(req, req.query.redirect);
+      if (safeRedirectPath) {
+        const host = req.get && req.get('host');
+        const baseUrl = `${req.protocol}://${host}`;
+        const redirectUrl = new URL(safeRedirectPath, baseUrl);
+        const params = redirectUrl.searchParams;
+        params.set('verified', '1');
+        redirectUrl.search = params.toString();
+        return res.redirect(redirectUrl.toString());
+      }
     }
 
     res.status(200).json({
