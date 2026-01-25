@@ -75,6 +75,7 @@ app.use('/api/page-backgrounds', require('./routes/pageBackgroundRoutes'));
 app.use('/api/homepage-content', require('./routes/homePageContentRoutes'));
 app.use('/api/team-members', require('./routes/teamMemberRoutes'));
 app.use('/api/seo', require('./routes/seo'));
+app.use('/api/cache', require('./routes/cacheRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

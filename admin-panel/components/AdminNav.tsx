@@ -38,6 +38,9 @@ export default function AdminNav({ user }: { user?: any }) {
             <Link href="/orders" className="hover:text-blue-600">
               Orders
             </Link>
+            <Link href="/cache-management" className="hover:text-blue-600">
+              Cache
+            </Link>
           </div>
         </div>
 
