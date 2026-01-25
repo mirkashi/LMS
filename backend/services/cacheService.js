@@ -169,7 +169,10 @@ class CacheService {
         // Memory cache pattern matching
         const allKeys = this.memoryCache.keys();
         const matchingKeys = allKeys.filter(key => {
-          const regex = new RegExp(pattern.replace('*', '.*'));
+          // Escape regex metacharacters, then convert all '*' wildcards to '.*'
+          const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regexPattern = escapedPattern.replace(/\*/g, '.*');
+          const regex = new RegExp(regexPattern);
           return regex.test(key);
         });
         matchingKeys.forEach(key => this.memoryCache.del(key));
