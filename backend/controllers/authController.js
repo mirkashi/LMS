@@ -7,6 +7,36 @@ const {
   sendPasswordResetEmail 
 } = require('../utils/mailer');
 
+const isLocalRedirect = (req, target) => {
+  if (typeof target !== 'string' || !target) {
+    return null;
+  }
+
+  // Disallow protocol-relative URLs and explicit schemes (http:, https:, javascript:, etc.)
+  if (target.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(target)) {
+    return null;
+  }
+
+  try {
+    const host = req.get && req.get('host');
+    if (!host) {
+      return null;
+    }
+    const baseUrl = `${req.protocol}://${host}`;
+    const resolved = new URL(target, baseUrl);
+
+    // Only allow redirects that stay on the same origin
+    if (resolved.origin !== baseUrl) {
+      return null;
+    }
+
+    // Return a normalized, safe path (including query and hash if present)
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch (e) {
+    return null;
+  }
+};
+
 const findUserByVerificationToken = async (token) => {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
   return User.findOne({
@@ -38,7 +68,7 @@ exports.register = async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: { $eq: email } });
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -101,7 +131,16 @@ exports.verifyEmail = async (req, res) => {
 
     if (!user) {
       if (req.query.redirect) {
-        return res.redirect(`${req.query.redirect}?verified=0`);
+        const safeRedirectPath = isLocalRedirect(req, req.query.redirect);
+        if (safeRedirectPath) {
+          const host = req.get && req.get('host');
+          const baseUrl = `${req.protocol}://${host}`;
+          const redirectUrl = new URL(safeRedirectPath, baseUrl);
+          const params = redirectUrl.searchParams;
+          params.set('verified', '0');
+          redirectUrl.search = params.toString();
+          return res.redirect(redirectUrl.toString());
+        }
       }
       return res.status(400).json({
         success: false,
@@ -115,7 +154,16 @@ exports.verifyEmail = async (req, res) => {
     await user.save();
 
     if (req.query.redirect) {
-      return res.redirect(`${req.query.redirect}?verified=1`);
+      const safeRedirectPath = isLocalRedirect(req, req.query.redirect);
+      if (safeRedirectPath) {
+        const host = req.get && req.get('host');
+        const baseUrl = `${req.protocol}://${host}`;
+        const redirectUrl = new URL(safeRedirectPath, baseUrl);
+        const params = redirectUrl.searchParams;
+        params.set('verified', '1');
+        redirectUrl.search = params.toString();
+        return res.redirect(redirectUrl.toString());
+      }
     }
 
     res.status(200).json({
@@ -143,6 +191,15 @@ exports.verifyEmailCode = async (req, res) => {
       });
     }
 
+    // Validate email format and type to prevent NoSQL injection
+    if (typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email.',
+      });
+    }
+    const safeEmail = email.trim().toLowerCase();
+
     // Validate code format (6 digits)
     if (!/^\d{6}$/.test(code)) {
       return res.status(400).json({
@@ -151,7 +208,7 @@ exports.verifyEmailCode = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: safeEmail } });
 
     if (!user) {
       return res.status(404).json({
@@ -318,6 +375,14 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Ensure email and password are strings to prevent injection via objects
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
     if (!phone) {
       return res.status(400).json({
         success: false,
@@ -325,7 +390,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    // Optionally ensure phone is also a string
+    if (typeof phone !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format',
+      });
+    }
+
+    const user = await User.findOne({ email: { $eq: email } }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -455,6 +528,22 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Ensure token is a string to prevent NoSQL injection via query operators
+    if (typeof token !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset token format',
+      });
+    }
+
+    const trimmedToken = token.trim();
+    if (!trimmedToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset token format',
+      });
+    }
+
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -471,7 +560,7 @@ exports.resetPassword = async (req, res) => {
     }
 
     const user = await User.findOne({
-      passwordResetToken: token,
+      passwordResetToken: { $eq: trimmedToken },
       passwordResetExpires: { $gt: Date.now() },
     });
 

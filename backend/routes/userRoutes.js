@@ -24,8 +24,16 @@ const avatarLimiter = rateLimit({
   max: 60, // limit each IP to 60 avatar requests per window
 });
 
+// Rate limiter for cart operations to prevent abuse
+const cartLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 cart requests per window
+});
+
+// Rate limiter for cart operations to prevent abuse
+
 // Get user profile
-router.get('/profile', authMiddleware, async (req, res) => {
+router.get('/profile', profileLimiter, authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).populate('enrolledCourses');
 
@@ -50,7 +58,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 // Update user profile (name, email, phone, bio, avatar, password)
-router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
+router.put('/profile', authMiddleware, profileLimiter, upload.single('avatar'), async (req, res) => {
   try {
     const { name, email, bio, phone, password, confirmPassword } = req.body;
     const userId = req.user.userId;
@@ -65,15 +73,28 @@ router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res)
     }
 
     // Email change (ensure uniqueness)
-    if (email && email !== user.email) {
-      const existing = await User.findOne({ email });
+    if (typeof email !== 'undefined' && email !== user.email) {
+      if (typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email format',
+        });
+      }
+      const normalizedEmail = email.trim();
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email cannot be empty',
+        });
+      }
+      const existing = await User.findOne({ email: normalizedEmail });
       if (existing && existing._id.toString() !== userId) {
         return res.status(409).json({
           success: false,
           message: 'Email already in use',
         });
       }
-      user.email = email;
+      user.email = normalizedEmail;
       user.isEmailVerified = false;
     }
 
