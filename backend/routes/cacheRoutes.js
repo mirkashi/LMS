@@ -16,10 +16,10 @@ const cacheLimiter = rateLimit({
   message: 'Too many cache operations, please try again later',
 });
 
-// Apply authentication and admin middleware to all routes
+// Apply rate limiting, authentication and admin middleware to all routes
+router.use(cacheLimiter);
 router.use(authMiddleware);
 router.use(adminMiddleware);
-router.use(cacheLimiter);
 
 // Clear cache by category
 router.post('/clear/shop', cacheController.clearShopCache);
