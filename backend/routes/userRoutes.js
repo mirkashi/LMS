@@ -56,7 +56,7 @@ router.get('/profile', profileLimiter, authMiddleware, async (req, res) => {
 });
 
 // Update user profile (name, email, phone, bio, avatar, password)
-router.put('/profile', authMiddleware, profileLimiter, upload.single('avatar'), async (req, res) => {
+router.put('/profile', profileLimiter, authMiddleware, upload.single('avatar'), async (req, res) => {
   try {
     const { name, email, bio, phone, password, confirmPassword } = req.body;
     const userId = req.user.userId;
