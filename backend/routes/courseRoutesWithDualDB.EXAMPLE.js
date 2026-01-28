@@ -162,7 +162,7 @@ router.post('/:courseId/intro-video', authMiddleware, videoUploadLimiter, async 
  * 
  * Stores lesson video in PostgreSQL with lesson reference
  */
-router.post('/:courseId/lessons/:lessonId/video', authMiddleware, videoUploadLimiter, async (req, res) => {
+router.post('/:courseId/lessons/:lessonId/video', authMiddleware, videoAccessLimiter, videoUploadLimiter, async (req, res) => {
   try {
     const { videoUrl, storageType = 'local', duration, thumbnail } = req.body;
     const { courseId, lessonId } = req.params;
