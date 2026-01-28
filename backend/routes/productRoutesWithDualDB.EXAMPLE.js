@@ -21,6 +21,14 @@ const deleteImageLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for fetching single products to protect MongoDB/PostgreSQL reads
+const getProductLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // allow up to 300 product fetches per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Rate limiter for image uploads to mitigate DoS via repeated database writes
 const uploadImageLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -132,11 +140,11 @@ router.post('/', authMiddleware, async (req, res) => {
  *     { "id": 2, "imageUrl": "...", "isMainImage": false }
  *   ]
  * }
+ * }
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', getProductLimiter, async (req, res) => {
   try {
     // Step 1: Get product from MongoDB
-    const product = await Product.findById(req.params.id).populate('createdBy', 'name email');
 
     if (!product) {
       return res.status(404).json({
