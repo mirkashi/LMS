@@ -20,6 +20,14 @@ const videoAccessLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
+// Separate limiter for video upload endpoints (intro/lesson videos)
+const videoUploadLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10, // limit each IP to 10 upload requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Rate limit for fetching full course data (MongoDB + PostgreSQL)
 const courseFullLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
@@ -93,7 +101,7 @@ router.post('/', authMiddleware, async (req, res) => {
  * 
  * Stores video reference in PostgreSQL only
  */
-router.post('/:courseId/intro-video', authMiddleware, async (req, res) => {
+router.post('/:courseId/intro-video', authMiddleware, videoUploadLimiter, async (req, res) => {
   try {
     const { videoUrl, storageType = 'local', duration } = req.body;
     const sequelize = req.app.get('sequelize');
@@ -154,7 +162,7 @@ router.post('/:courseId/intro-video', authMiddleware, async (req, res) => {
  * 
  * Stores lesson video in PostgreSQL with lesson reference
  */
-router.post('/:courseId/lessons/:lessonId/video', authMiddleware, async (req, res) => {
+router.post('/:courseId/lessons/:lessonId/video', authMiddleware, videoUploadLimiter, async (req, res) => {
   try {
     const { videoUrl, storageType = 'local', duration, thumbnail } = req.body;
     const { courseId, lessonId } = req.params;
