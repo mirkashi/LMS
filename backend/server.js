@@ -2,10 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
-const { Sequelize } = require('sequelize');
 const http = require('http');
 const socketIo = require('socket.io');
 require('dotenv').config();
+
+const { initializeDatabase } = require('./models/postgres');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,24 +39,22 @@ mongoose.connect(mongoUri, {
 });
 
 // PostgreSQL Connection (optional)
-let sequelize;
+let sequelize = null;
+let pgModels = {};
 const pgEnabled = String(process.env.DB_ENABLED || 'true') !== 'false';
-if (pgEnabled) {
-  sequelize = new Sequelize(
-    process.env.DB_NAME || '9tangle',
-    process.env.DB_USER || 'postgres',
-    process.env.DB_PASSWORD || 'password',
-    {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      dialect: 'postgres',
-      logging: false,
-    }
-  );
 
-  sequelize.authenticate()
-    .then(() => console.log('✅ PostgreSQL connected'))
-    .catch(err => console.error('PostgreSQL connection error:', err));
+if (pgEnabled) {
+  initializeDatabase()
+    .then(({ sequelize: seq, models }) => {
+      sequelize = seq;
+      pgModels = models;
+      app.set('sequelize', sequelize);
+      app.set('pgModels', pgModels);
+    })
+    .catch(err => {
+      console.error('❌ Failed to initialize PostgreSQL:', err.message);
+      console.log('ℹ️ Continuing with MongoDB only');
+    });
 } else {
   console.log('ℹ️ PostgreSQL disabled via DB_ENABLED=false');
 }

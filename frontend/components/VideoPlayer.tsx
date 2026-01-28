@@ -89,13 +89,13 @@ export default function VideoPlayer({
 
   const normalizedVideoLink = normalizeVideoUrl(videoLink);
 
+  // Helper function to extract video ID and convert to embed URL
+  const getEmbedUrl = (url: string) => {
+    try {
       const parsed = new URL(url);
       const hostname = parsed.hostname;
       const pathname = parsed.pathname || '';
 
-  // Helper function to extract video ID and convert to embed URL
-  const getEmbedUrl = (url: string) => {
-    try {
       // YouTube
       const isYouTubeHost =
         hostname === 'youtube.com' ||
