@@ -20,6 +20,14 @@ const videoAccessLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
+// Rate limit for fetching full course data (MongoDB + PostgreSQL)
+const courseFullLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 60, // limit each IP to 60 full-course requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
 // ============================================
 // EXAMPLE: Create Course (Metadata in MongoDB)
 // ============================================
@@ -294,7 +302,7 @@ router.post('/:courseId/lessons/:lessonId/resources', authMiddleware, async (req
  *   "resources": [ ] // From PostgreSQL
  * }
  */
-router.get('/:courseId/full', async (req, res) => {
+router.get('/:courseId/full', courseFullLimiter, async (req, res) => {
   try {
     const sequelize = req.app.get('sequelize');
 
