@@ -36,6 +36,10 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name, description, price, category, images = [] } = req.body;
 
+    // Normalize and bound images to prevent DoS via huge length values
+    const MAX_IMAGES = 50;
+    const productImages = Array.isArray(images) ? images.slice(0, MAX_IMAGES) : [];
+
     // Step 1: Save to MongoDB (metadata)
     const product = new Product({
       name,
@@ -43,7 +47,7 @@ router.post('/', authMiddleware, async (req, res) => {
       price,
       category,
       createdBy: req.user.userId,
-      images, // Store image URLs temporarily
+      images: productImages, // Store image URLs temporarily
     });
 
     const savedProduct = await product.save();
@@ -52,14 +56,14 @@ router.post('/', authMiddleware, async (req, res) => {
     const sequelize = req.app.get('sequelize');
     const imageRecords = [];
 
-    if (sequelize && images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
+    if (sequelize && productImages.length > 0) {
+      for (let i = 0; i < productImages.length; i++) {
         try {
           const imageRecord = await postgresMediaUtils.saveProductImage(
             sequelize,
             {
               mongoProductId: savedProduct._id.toString(),
-              imageUrl: images[i],
+              imageUrl: productImages[i],
               storageType: 'local', // or 'google-drive', 'cloud'
               isMainImage: i === 0, // First image is main
               uploadedBy: req.user.userId,
