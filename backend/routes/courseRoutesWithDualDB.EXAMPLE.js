@@ -253,7 +253,7 @@ router.get('/:courseId/videos', async (req, res) => {
  * 
  * Stores resource metadata in PostgreSQL
  */
-router.post('/:courseId/lessons/:lessonId/resources', authMiddleware, async (req, res) => {
+router.post('/:courseId/lessons/:lessonId/resources', authMiddleware, videoAccessLimiter, async (req, res) => {
   try {
     const { resourceName, resourceUrl, resourceType, storageType = 'local' } = req.body;
     const { courseId, lessonId } = req.params;
