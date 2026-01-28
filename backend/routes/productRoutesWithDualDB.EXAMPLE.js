@@ -57,7 +57,7 @@ const uploadImageLimiter = rateLimit({
  * 2. Save image metadata to PostgreSQL (image URLs, file sizes, storage location)
  * 3. Return product with image references
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, uploadImageLimiter, async (req, res) => {
   try {
     const { name, description, price, category, images = [] } = req.body;
 
