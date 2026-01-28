@@ -11,6 +11,14 @@ const mongoose = require('mongoose');
 const Course = require('../models/Course');
 const { authMiddleware } = require('../middleware/auth');
 const postgresMediaUtils = require('../utils/postgresMediaUtils');
+const rateLimit = require('express-rate-limit');
+
+const videoAccessLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 30, // limit each IP to 30 access-tracking requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 // ============================================
 // EXAMPLE: Create Course (Metadata in MongoDB)
@@ -349,7 +357,7 @@ router.get('/:courseId/full', async (req, res) => {
  * Increments access count and tracks when user watches video
  * Used for analytics and popular content tracking
  */
-router.post('/:courseId/videos/:videoId/access', authMiddleware, async (req, res) => {
+router.post('/:courseId/videos/:videoId/access', authMiddleware, videoAccessLimiter, async (req, res) => {
   try {
     const sequelize = req.app.get('sequelize');
 
