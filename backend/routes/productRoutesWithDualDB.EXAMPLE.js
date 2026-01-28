@@ -11,6 +11,15 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { authMiddleware } = require('../middleware/auth');
 const postgresMediaUtils = require('../utils/postgresMediaUtils');
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter for image deletion to mitigate DoS via repeated expensive operations
+const deleteImageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 delete requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ============================================
 // EXAMPLE: Create Product with Images
@@ -225,7 +234,7 @@ router.post('/:id/images', authMiddleware, async (req, res) => {
  * 
  * Only affects PostgreSQL, not MongoDB
  */
-router.delete('/:productId/images/:imageId', authMiddleware, async (req, res) => {
+router.delete('/:productId/images/:imageId', deleteImageLimiter, authMiddleware, async (req, res) => {
   try {
     const sequelize = req.app.get('sequelize');
 
