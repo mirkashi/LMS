@@ -21,6 +21,14 @@ const deleteImageLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for image uploads to mitigate DoS via repeated database writes
+const uploadImageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 upload requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ============================================
 // EXAMPLE: Create Product with Images
 // ============================================
@@ -183,7 +191,7 @@ router.get('/:id', async (req, res) => {
  * 
  * Stores only to PostgreSQL - no MongoDB changes
  */
-router.post('/:id/images', authMiddleware, async (req, res) => {
+router.post('/:id/images', uploadImageLimiter, authMiddleware, async (req, res) => {
   try {
     const { imageUrl, altText } = req.body;
     const sequelize = req.app.get('sequelize');
