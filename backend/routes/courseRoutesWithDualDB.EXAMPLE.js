@@ -210,7 +210,7 @@ router.post('/:courseId/lessons/:lessonId/video', authMiddleware, async (req, re
  * 
  * Returns all videos (intro, lessons) for a course from PostgreSQL
  */
-router.get('/:courseId/videos', async (req, res) => {
+router.get('/:courseId/videos', videoAccessLimiter, async (req, res) => {
   try {
     const sequelize = req.app.get('sequelize');
 
